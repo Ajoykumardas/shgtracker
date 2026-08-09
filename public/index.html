@@ -165,6 +165,12 @@
         </h3>
         <p class="form-section-subtitle">Select reason why eKYC / Phone verification is pending for this member:</p>
 
+        <!-- In-card Success Alert Banner -->
+        <div id="formSuccessAlert" class="form-success-alert" style="display:none;">
+          <span class="alert-icon">✓</span>
+          <span id="formSuccessAlertText">Reason saved successfully!</span>
+        </div>
+
         <div class="form-group">
           <label for="detailReasonSelect">Non-Completion Reason:</label>
           <select id="detailReasonSelect" class="form-select-large">
@@ -186,6 +192,9 @@
           <button id="saveReasonBtn" class="btn btn-primary btn-lg">
             ✓ Save & Next
           </button>
+          <button id="saveOnlyBtn" class="btn btn-outline btn-lg">
+            Save
+          </button>
           <button id="clearReasonBtn" class="btn btn-outline">
             Clear
           </button>
@@ -198,7 +207,7 @@
     </div>
   </main>
 
-  <!-- Save Toast Notification -->
+  <!-- Floating Toast Notification -->
   <div id="toastNotification" class="toast-notification">✓ Response saved</div>
 
   <script src="app.js"></script>

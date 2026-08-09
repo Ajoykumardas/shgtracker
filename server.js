@@ -72,6 +72,16 @@ const server = http.createServer((req, res) => {
     return res.end();
   }
 
+  // Lightweight Health / Ping endpoint for uptime monitors
+  if (pathname === '/health' || pathname === '/ping') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({
+      status: 'ok',
+      uptime: process.uptime(),
+      timestamp: new Date().toISOString()
+    }));
+  }
+
   // API Endpoints
   if (pathname === '/api/reasons') {
     if (req.method === 'GET') {
@@ -85,7 +95,6 @@ const server = http.createServer((req, res) => {
       req.on('end', () => {
         try {
           const payload = JSON.parse(body);
-          // payload: { memberCode: { reason: string, remarks: string, timestamp: string } }
           savedReasons = { ...savedReasons, ...payload };
           fs.writeFileSync(REASONS_FILE, JSON.stringify(savedReasons, null, 2), 'utf-8');
           res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -133,4 +142,19 @@ const server = http.createServer((req, res) => {
 
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`SHG Verification Portal running at http://localhost:${PORT}`);
+
+  // Built-in Self-Pinger: If RENDER_EXTERNAL_URL is set in Render environment, automatically ping itself every 10 minutes
+  const appUrl = process.env.RENDER_EXTERNAL_URL || process.env.APP_URL;
+  if (appUrl) {
+    const pingUrl = `${appUrl.replace(/\/$/, '')}/health`;
+    console.log(`Starting self-ping service for: ${pingUrl}`);
+    setInterval(() => {
+      const httpModule = pingUrl.startsWith('https') ? require('https') : require('http');
+      httpModule.get(pingUrl, (res) => {
+        console.log(`[Self-Ping] Pinged ${pingUrl} - Status: ${res.statusCode} at ${new Date().toLocaleTimeString()}`);
+      }).on('error', (err) => {
+        console.warn(`[Self-Ping] Ping error:`, err.message);
+      });
+    }, 10 * 60 * 1000); // Every 10 minutes
+  }
 });

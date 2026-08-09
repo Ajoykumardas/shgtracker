@@ -61,10 +61,13 @@ const el = {
   // Reason Form & Verified Notice
   verifiedMemberNotice: document.getElementById('verifiedMemberNotice'),
   reasonFormCard: document.getElementById('reasonFormCard'),
+  formSuccessAlert: document.getElementById('formSuccessAlert'),
+  formSuccessAlertText: document.getElementById('formSuccessAlertText'),
   detailReasonSelect: document.getElementById('detailReasonSelect'),
   remarksGroup: document.getElementById('remarksGroup'),
   detailRemarksInput: document.getElementById('detailRemarksInput'),
   saveReasonBtn: document.getElementById('saveReasonBtn'),
+  saveOnlyBtn: document.getElementById('saveOnlyBtn'),
   clearReasonBtn: document.getElementById('clearReasonBtn'),
   savedTimestampNotice: document.getElementById('savedTimestampNotice'),
   savedTimestampText: document.getElementById('savedTimestampText'),
@@ -178,10 +181,17 @@ function bindEvents() {
     el.remarksGroup.style.display = (val === 'Other') ? 'flex' : 'none';
   });
 
-  // Save Reason
+  // Save & Next Button
   el.saveReasonBtn.addEventListener('click', () => {
     saveCurrentMemberReason(true);
   });
+
+  // Save Only Button
+  if (el.saveOnlyBtn) {
+    el.saveOnlyBtn.addEventListener('click', () => {
+      saveCurrentMemberReason(false);
+    });
+  }
 
   // Clear Reason
   el.clearReasonBtn.addEventListener('click', clearCurrentMemberReason);
@@ -438,6 +448,7 @@ function openMemberReasonPage(index) {
   if (isFullyVerified) {
     el.verifiedMemberNotice.style.display = 'block';
     el.reasonFormCard.style.display = 'none';
+    el.formSuccessAlert.style.display = 'none';
   } else {
     el.verifiedMemberNotice.style.display = 'none';
     el.reasonFormCard.style.display = 'block';
@@ -452,6 +463,13 @@ function openMemberReasonPage(index) {
     } else {
       el.remarksGroup.style.display = 'none';
       el.detailRemarksInput.value = saved.remarks || '';
+    }
+
+    if (saved.reason) {
+      el.formSuccessAlert.style.display = 'flex';
+      el.formSuccessAlertText.textContent = `✓ Reason Logged: ${saved.reason}`;
+    } else {
+      el.formSuccessAlert.style.display = 'none';
     }
 
     if (saved.updatedAt) {
@@ -472,6 +490,7 @@ function saveCurrentMemberReason(advanceNext = false) {
 
   if (!reason) {
     delete state.savedReasons[m.mc];
+    el.formSuccessAlert.style.display = 'none';
     showToast('Reason cleared');
   } else {
     state.savedReasons[m.mc] = {
@@ -479,6 +498,10 @@ function saveCurrentMemberReason(advanceNext = false) {
       remarks,
       updatedAt: timestamp
     };
+
+    // Show in-card success banner
+    el.formSuccessAlert.style.display = 'flex';
+    el.formSuccessAlertText.textContent = `✓ Reason saved successfully for ${m.mn}: ${reason}!`;
     showToast(`✓ Saved: ${reason}`);
   }
 
@@ -500,7 +523,7 @@ function saveCurrentMemberReason(advanceNext = false) {
   if (advanceNext && state.activeMemberIndex < state.currentList.length - 1) {
     setTimeout(() => {
       openMemberReasonPage(state.activeMemberIndex + 1);
-    }, 300);
+    }, 500);
   }
 }
 
@@ -510,6 +533,7 @@ function clearCurrentMemberReason() {
   el.detailReasonSelect.value = '';
   el.detailRemarksInput.value = '';
   el.remarksGroup.style.display = 'none';
+  el.formSuccessAlert.style.display = 'none';
 
   delete state.savedReasons[m.mc];
   localStorage.setItem('shg_member_reasons', JSON.stringify(state.savedReasons));
