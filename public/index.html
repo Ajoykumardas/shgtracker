@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>SHG Member Verification & Reason Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Clean Top Header -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand-title">
+        <h2>SHG Verification Tracker</h2>
+        <p>GP ➔ Village ➔ SHG ➔ Active Member List</p>
+      </div>
+      <div class="header-actions">
+        <button id="exportAllCsvBtn" class="btn btn-primary" title="Export All Block Members & Recorded Responses to CSV">
+          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          Export CSV (All Members)
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="main-container">
+    <!-- PAGE 1: SHG & Member Selection View -->
+    <div id="memberListView" class="app-view">
+      <!-- Step Selector Card: GP -> Village -> SHG -->
+      <section class="selector-card">
+        <div class="selector-grid">
+          <div class="selector-item">
+            <label for="selectGp">1. Gram Panchayat (GP)</label>
+            <select id="selectGp">
+              <option value="">-- Select GP --</option>
+            </select>
+          </div>
+
+          <div class="selector-item">
+            <label for="selectVillage">2. Village</label>
+            <select id="selectVillage" disabled>
+              <option value="">-- Select Village --</option>
+            </select>
+          </div>
+
+          <div class="selector-item">
+            <label for="selectShg">3. SHG Name</label>
+            <select id="selectShg" disabled>
+              <option value="">-- Select SHG --</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="selector-footer" id="selectorFooter" style="display:none;">
+          <button id="resetAllNavBtn" class="btn-link">⟲ Change / Reset Selection</button>
+        </div>
+      </section>
+
+      <!-- Clean List Header & Search Bar -->
+      <div class="list-header-bar" id="listHeaderBar" style="display:none;">
+        <div class="shg-info-title">
+          <h3 id="currentShgHeading">SHG Name</h3>
+          <span class="badge-count" id="memberStatsBadge">0 Active</span>
+        </div>
+        <div class="search-wrap">
+          <input type="text" id="memberSearchInput" placeholder="Search member name or code...">
+        </div>
+      </div>
+
+      <!-- Members Table -->
+      <section class="table-container">
+        <table class="data-table" id="membersTable">
+          <thead>
+            <tr>
+              <th width="45">#</th>
+              <th>Member Details</th>
+              <th width="120">eKYC Status</th>
+              <th width="130">Phone Verified</th>
+              <th width="180">eBK Name / ID</th>
+              <th width="140">Reason Logged</th>
+              <th width="110">Action</th>
+            </tr>
+          </thead>
+          <tbody id="membersTableBody">
+            <tr>
+              <td colspan="7" class="placeholder-row">
+                Select a Gram Panchayat, Village, and SHG above to load members.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+    </div>
+
+    <!-- PAGE 2: Dedicated Member Detail & Reason Capture Page -->
+    <div id="memberReasonView" class="app-view" style="display:none;">
+      <div class="page-nav-bar">
+        <button id="backToListBtn" class="btn btn-outline">
+          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+            <line x1="19" y1="12" x2="5" y2="12"></line>
+            <polyline points="12 19 5 12 12 5"></polyline>
+          </svg>
+          ← Back to Member List
+        </button>
+
+        <div class="member-nav-buttons">
+          <button id="prevMemberBtn" class="btn btn-sm btn-outline">« Prev</button>
+          <span id="memberIndexDisplay" class="member-index-tag">1 of 10</span>
+          <button id="nextMemberBtn" class="btn btn-sm btn-outline">Next »</button>
+        </div>
+      </div>
+
+      <!-- Member Profile Header Card -->
+      <section class="detail-card profile-card">
+        <div class="profile-header">
+          <div class="profile-tag-row">
+            <span class="status-badge badge-neutral" id="detStatusBadge">ACTIVE</span>
+            <span class="tag-pill" id="detGpTag">GP</span>
+            <span class="tag-pill" id="detVillageTag">Village</span>
+            <span class="tag-pill" id="detShgTag">SHG</span>
+          </div>
+          <h2 class="det-member-name" id="detMemberName">Member Name</h2>
+          <div class="det-member-code code-font" id="detMemberCode">Code: 040034076256</div>
+        </div>
+
+        <!-- Verification Status Cards Grid -->
+        <div class="status-overview-grid">
+          <div class="status-overview-card">
+            <span class="stat-label">eKYC STATUS</span>
+            <span class="stat-value" id="detEkycVal">No</span>
+          </div>
+          <div class="status-overview-card">
+            <span class="stat-label">PHONE VERIFIED</span>
+            <span class="stat-value" id="detPhoneVal">No (FALSE)</span>
+          </div>
+          <div class="status-overview-card">
+            <span class="stat-label">BOOKKEEPER (eBK)</span>
+            <span class="stat-value stat-sub" id="detEbkVal">-</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Fully Verified Notice (Displayed when BOTH eKYC & Phone are Done) -->
+      <section class="detail-card success-banner-card" id="verifiedMemberNotice" style="display:none;">
+        <div class="success-banner-content">
+          <div class="success-icon-wrap">✓</div>
+          <div>
+            <h4>Fully Verified Member</h4>
+            <p>Both eKYC and Phone verification are completed for this member. No action or non-completion reason is required.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Reason Capture Form Card (ONLY for members where eKYC or Phone is Pending) -->
+      <section class="detail-card form-card" id="reasonFormCard">
+        <h3 class="form-section-title">
+          Record Non-Completion Reason
+        </h3>
+        <p class="form-section-subtitle">Select reason why eKYC / Phone verification is pending for this member:</p>
+
+        <div class="form-group">
+          <label for="detailReasonSelect">Non-Completion Reason:</label>
+          <select id="detailReasonSelect" class="form-select-large">
+            <option value="">-- Select Reason --</option>
+            <option value="Outstation">Outstation (Currently not present in the Village or District)</option>
+            <option value="Migrated">Migrated to somewhere else / other Place</option>
+            <option value="Aadhaar Demographic Mismatch">Aadhaar / Name / DOB Mismatch in Records</option>
+            <option value="Left SHG / Reluctant">Member Left SHG / Unwilling / Reluctant</option>
+            <option value="Other">Other Reason (Specify Below)</option>
+          </select>
+        </div>
+
+        <div class="form-group" id="remarksGroup" style="display:none;">
+          <label for="detailRemarksInput">Additional Remarks / Notes:</label>
+          <textarea id="detailRemarksInput" rows="3" placeholder="Enter remarks or location details..."></textarea>
+        </div>
+
+        <div class="form-action-row">
+          <button id="saveReasonBtn" class="btn btn-primary btn-lg">
+            ✓ Save & Next
+          </button>
+          <button id="clearReasonBtn" class="btn btn-outline">
+            Clear
+          </button>
+        </div>
+
+        <div id="savedTimestampNotice" class="saved-notice" style="display:none;">
+          Last saved: <span id="savedTimestampText"></span>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- Save Toast Notification -->
+  <div id="toastNotification" class="toast-notification">✓ Response saved</div>
+
+  <script src="app.js"></script>
+</body>
+</html>
