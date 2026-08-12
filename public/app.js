@@ -642,8 +642,14 @@ function exportAllBlockCsv() {
   const rows = activeMembers.map(m => {
     const isEkycYes = m.ekyc.toLowerCase() === 'yes';
     const isPhoneYes = m.pvf;
-    const actionNeeded = (!isEkycYes || !isPhoneYes) ? 'YES' : 'NO';
+    const isFullyVerified = (isEkycYes && isPhoneYes);
+    const actionNeeded = isFullyVerified ? 'NO' : 'YES';
     const saved = state.savedReasons[m.mc] || {};
+
+    // For fully verified members, non-verification reason is no longer required / blank
+    const reasonValue = isFullyVerified ? '' : (saved.reason || '');
+    const remarksValue = isFullyVerified ? '' : (saved.remarks || '');
+    const reasonTime = isFullyVerified ? '' : (saved.updatedAt || '');
 
     return [
       csvEscape(m.gp),
@@ -655,9 +661,9 @@ function exportAllBlockCsv() {
       csvEscape(m.ekyc),
       m.pvf ? 'TRUE' : 'FALSE',
       csvEscape(actionNeeded),
-      csvEscape(saved.reason || ''),
-      csvEscape(saved.remarks || ''),
-      csvEscape(saved.updatedAt || ''),
+      csvEscape(reasonValue),
+      csvEscape(remarksValue),
+      csvEscape(reasonTime),
       csvEscape(m.ebkid),
       csvEscape(m.ebkn),
       csvEscape(m.ebkm),
