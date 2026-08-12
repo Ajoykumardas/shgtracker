@@ -523,6 +523,48 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* In-card Error Alert Banner */
+.form-error-alert {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: #fef2f2;
+  border: 1px solid #fca5a5;
+  color: #b91c1c;
+  padding: 0.65rem 0.85rem;
+  border-radius: 6px;
+  font-size: 0.825rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  animation: fadeInAlert 0.2s ease-out;
+}
+
+.form-error-alert .alert-icon-error {
+  width: 20px;
+  height: 20px;
+  background-color: #dc2626;
+  color: #ffffff;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.input-error {
+  border-color: #dc2626 !important;
+  background-color: #fffbfb !important;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.18) !important;
+}
+
+.required-indicator {
+  color: #dc2626;
+  font-weight: 700;
+  margin-left: 0.2rem;
+}
+
 .form-group {
   display: flex;
   flex-direction: column;
@@ -662,6 +704,11 @@ body {
 .toast-notification.show {
   opacity: 1;
   transform: translateY(0);
+}
+
+.toast-notification.toast-error {
+  background-color: #b91c1c;
+  color: #ffffff;
 }
 
 /* ==========================================================================

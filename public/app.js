@@ -63,6 +63,8 @@ const el = {
   reasonFormCard: document.getElementById('reasonFormCard'),
   formSuccessAlert: document.getElementById('formSuccessAlert'),
   formSuccessAlertText: document.getElementById('formSuccessAlertText'),
+  formErrorAlert: document.getElementById('formErrorAlert'),
+  formErrorAlertText: document.getElementById('formErrorAlertText'),
   detailReasonSelect: document.getElementById('detailReasonSelect'),
   remarksGroup: document.getElementById('remarksGroup'),
   detailRemarksInput: document.getElementById('detailRemarksInput'),
@@ -179,6 +181,17 @@ function bindEvents() {
   el.detailReasonSelect.addEventListener('change', (e) => {
     const val = e.target.value;
     el.remarksGroup.style.display = (val === 'Other') ? 'flex' : 'none';
+    clearFormValidationErrors();
+    if (val === 'Other') {
+      setTimeout(() => el.detailRemarksInput.focus(), 50);
+    }
+  });
+
+  // Remarks input listener to clear error on typing
+  el.detailRemarksInput.addEventListener('input', () => {
+    if (el.detailRemarksInput.value.trim()) {
+      clearFormValidationErrors();
+    }
   });
 
   // Save & Next Button
@@ -453,6 +466,9 @@ function openMemberReasonPage(index) {
     el.verifiedMemberNotice.style.display = 'none';
     el.reasonFormCard.style.display = 'block';
 
+    // Clear any leftover validation errors when loading member
+    clearFormValidationErrors();
+
     // Load Saved Reason (if any)
     const saved = state.savedReasons[m.mc] || { reason: '', remarks: '', updatedAt: '' };
     el.detailReasonSelect.value = saved.reason || '';
@@ -481,6 +497,25 @@ function openMemberReasonPage(index) {
   }
 }
 
+function clearFormValidationErrors() {
+  if (el.formErrorAlert) el.formErrorAlert.style.display = 'none';
+  if (el.detailReasonSelect) el.detailReasonSelect.classList.remove('input-error');
+  if (el.detailRemarksInput) el.detailRemarksInput.classList.remove('input-error');
+}
+
+function showFormValidationError(message, targetEl) {
+  if (el.formSuccessAlert) el.formSuccessAlert.style.display = 'none';
+  if (el.formErrorAlert) {
+    el.formErrorAlert.style.display = 'flex';
+    el.formErrorAlertText.textContent = message;
+  }
+  if (targetEl) {
+    targetEl.classList.add('input-error');
+    targetEl.focus();
+  }
+  showToast(`⚠️ ${message}`, true);
+}
+
 function saveCurrentMemberReason(advanceNext = false) {
   if (state.activeMemberIndex < 0 || state.activeMemberIndex >= state.currentList.length) return;
   const m = state.currentList[state.activeMemberIndex];
@@ -488,22 +523,31 @@ function saveCurrentMemberReason(advanceNext = false) {
   const remarks = el.detailRemarksInput.value.trim();
   const timestamp = new Date().toISOString();
 
+  // Validation 1: Reason must be selected
   if (!reason) {
-    delete state.savedReasons[m.mc];
-    el.formSuccessAlert.style.display = 'none';
-    showToast('Reason cleared');
-  } else {
-    state.savedReasons[m.mc] = {
-      reason,
-      remarks,
-      updatedAt: timestamp
-    };
-
-    // Show in-card success banner
-    el.formSuccessAlert.style.display = 'flex';
-    el.formSuccessAlertText.textContent = `✓ Reason saved successfully for ${m.mn}: ${reason}!`;
-    showToast(`✓ Saved: ${reason}`);
+    showFormValidationError('Please select a non-completion reason from the dropdown.', el.detailReasonSelect);
+    return;
   }
+
+  // Validation 2: If "Other" is selected, remarks/specification is strictly required
+  if (reason === 'Other' && !remarks) {
+    showFormValidationError('Please specify the reason in the remarks field for "Other".', el.detailRemarksInput);
+    return;
+  }
+
+  // Clear any existing validation errors
+  clearFormValidationErrors();
+
+  state.savedReasons[m.mc] = {
+    reason,
+    remarks,
+    updatedAt: timestamp
+  };
+
+  // Show in-card success banner
+  el.formSuccessAlert.style.display = 'flex';
+  el.formSuccessAlertText.textContent = `✓ Reason saved successfully for ${m.mn}: ${reason}!`;
+  showToast(`✓ Saved: ${reason}`);
 
   // Persist LocalStorage
   localStorage.setItem('shg_member_reasons', JSON.stringify(state.savedReasons));
@@ -512,11 +556,11 @@ function saveCurrentMemberReason(advanceNext = false) {
   fetch('/api/reasons', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ [m.mc]: state.savedReasons[m.mc] || { reason: '', remarks: '', updatedAt: timestamp } })
+    body: JSON.stringify({ [m.mc]: state.savedReasons[m.mc] })
   }).catch(() => {});
 
   // Update timestamp notice
-  el.savedTimestampNotice.style.display = reason ? 'block' : 'none';
+  el.savedTimestampNotice.style.display = 'block';
   el.savedTimestampText.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
   // Auto-advance to next member if requested
@@ -534,6 +578,7 @@ function clearCurrentMemberReason() {
   el.detailRemarksInput.value = '';
   el.remarksGroup.style.display = 'none';
   el.formSuccessAlert.style.display = 'none';
+  clearFormValidationErrors();
 
   delete state.savedReasons[m.mc];
   localStorage.setItem('shg_member_reasons', JSON.stringify(state.savedReasons));
@@ -548,13 +593,19 @@ function clearCurrentMemberReason() {
   showToast('Reason cleared');
 }
 
-function showToast(msg) {
+function showToast(msg, isError = false) {
   el.toastNotification.textContent = msg;
+  if (isError) {
+    el.toastNotification.classList.add('toast-error');
+  } else {
+    el.toastNotification.classList.remove('toast-error');
+  }
   el.toastNotification.classList.add('show');
   clearTimeout(showToast._timeout);
   showToast._timeout = setTimeout(() => {
     el.toastNotification.classList.remove('show');
-  }, 2000);
+    el.toastNotification.classList.remove('toast-error');
+  }, 2500);
 }
 
 // ----------------------------------------------------

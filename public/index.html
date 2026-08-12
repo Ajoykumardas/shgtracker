@@ -171,6 +171,12 @@
           <span id="formSuccessAlertText">Reason saved successfully!</span>
         </div>
 
+        <!-- In-card Error Alert Banner -->
+        <div id="formErrorAlert" class="form-error-alert" style="display:none;">
+          <span class="alert-icon-error">!</span>
+          <span id="formErrorAlertText">Please specify the reason before saving.</span>
+        </div>
+
         <div class="form-group">
           <label for="detailReasonSelect">Non-Completion Reason:</label>
           <select id="detailReasonSelect" class="form-select-large">
@@ -184,8 +190,8 @@
         </div>
 
         <div class="form-group" id="remarksGroup" style="display:none;">
-          <label for="detailRemarksInput">Additional Remarks / Notes:</label>
-          <textarea id="detailRemarksInput" rows="3" placeholder="Enter remarks or location details..."></textarea>
+          <label for="detailRemarksInput">Specify Other Reason / Remarks <span class="required-indicator">*</span>:</label>
+          <textarea id="detailRemarksInput" rows="3" placeholder="Please specify the reason or details here (Required)..."></textarea>
         </div>
 
         <div class="form-action-row">
