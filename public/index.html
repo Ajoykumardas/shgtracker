@@ -257,63 +257,64 @@
         </div>
       </section>
 
-      <!-- Stats Summary Card (Redesigned Hero Bar) -->
-      <section class="stats-card cutoff-stats-hero-card">
-        <div class="stats-hero-layout">
-          <div class="total-shg-badge-card">
-            <div class="total-shg-icon">📊</div>
-            <div class="total-shg-content">
-              <span class="total-shg-label">TOTAL SHGs</span>
-              <span class="total-shg-val" id="statCutoffTotal">0</span>
-            </div>
+      <!-- Simple Stats Summary Card -->
+      <section class="stats-card">
+        <div class="cutoff-stats-grid">
+          <div class="stat-box">
+            <span class="stat-label">TOTAL SHGs</span>
+            <span class="stat-num" id="statCutoffTotal">0</span>
           </div>
-          <div class="cutoff-dates-grid">
-            <div class="date-stat-card">
-              <span class="date-stat-label">📅 12.08</span>
-              <span class="date-stat-val" id="statCutoff12">0</span>
-              <span class="date-stat-sub">DONE</span>
-            </div>
-            <div class="date-stat-card">
-              <span class="date-stat-label">📅 13.08</span>
-              <span class="date-stat-val" id="statCutoff13">0</span>
-              <span class="date-stat-sub">DONE</span>
-            </div>
-            <div class="date-stat-card">
-              <span class="date-stat-label">📅 14.08</span>
-              <span class="date-stat-val" id="statCutoff14">0</span>
-              <span class="date-stat-sub">DONE</span>
-            </div>
-            <div class="date-stat-card">
-              <span class="date-stat-label">📅 15.08</span>
-              <span class="date-stat-val" id="statCutoff15">0</span>
-              <span class="date-stat-sub">DONE</span>
-            </div>
-            <div class="date-stat-card">
-              <span class="date-stat-label">📅 16.08</span>
-              <span class="date-stat-val" id="statCutoff16">0</span>
-              <span class="date-stat-sub">DONE</span>
-            </div>
-            <div class="date-stat-card">
-              <span class="date-stat-label">📅 17.08</span>
-              <span class="date-stat-val" id="statCutoff17">0</span>
-              <span class="date-stat-sub">DONE</span>
-            </div>
-            <div class="date-stat-card">
-              <span class="date-stat-label">📅 18.08</span>
-              <span class="date-stat-val" id="statCutoff18">0</span>
-              <span class="date-stat-sub">DONE</span>
-            </div>
+          <div class="stat-box">
+            <span class="stat-label">12.08 DONE</span>
+            <span class="stat-num stat-green" id="statCutoff12">0</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-label">13.08 DONE</span>
+            <span class="stat-num stat-green" id="statCutoff13">0</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-label">14.08 DONE</span>
+            <span class="stat-num stat-green" id="statCutoff14">0</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-label">15.08 DONE</span>
+            <span class="stat-num stat-green" id="statCutoff15">0</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-label">16.08 DONE</span>
+            <span class="stat-num stat-green" id="statCutoff16">0</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-label">17.08 DONE</span>
+            <span class="stat-num stat-green" id="statCutoff17">0</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-label">18.08 DONE</span>
+            <span class="stat-num stat-green" id="statCutoff18">0</span>
           </div>
         </div>
       </section>
 
-      <!-- Cutoff SHG Card List -->
-      <section id="cutoffCardListSection">
-        <div id="cutoffCardList" class="cutoff-card-list">
-          <div class="cutoff-placeholder-msg">
-            Select a <strong>Gram Panchayat</strong> and <strong>Village</strong> to view SHG list.
-          </div>
-        </div>
+      <!-- Cutoff SHG Table Container (Matching Member Verification table design) -->
+      <section class="table-container">
+        <table class="data-table" id="cutoffTable">
+          <thead>
+            <tr>
+              <th width="45">Sl. No.</th>
+              <th>SHG Name & Code</th>
+              <th>Village</th>
+              <th class="text-center" width="160">Cutoff Status</th>
+              <th class="text-center" width="130">Action</th>
+            </tr>
+          </thead>
+          <tbody id="cutoffTableBody">
+            <tr>
+              <td colspan="5" class="placeholder-row">
+                Select a Gram Panchayat and Village above to view SHGs.
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </section>
     </div>
 

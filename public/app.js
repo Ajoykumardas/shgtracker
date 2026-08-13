@@ -117,7 +117,7 @@ const el = {
   statCutoff16: document.getElementById('statCutoff16'),
   statCutoff17: document.getElementById('statCutoff17'),
   statCutoff18: document.getElementById('statCutoff18'),
-  cutoffCardList: document.getElementById('cutoffCardList'),
+  cutoffTableBody: document.getElementById('cutoffTableBody'),
 
   // Cutoff Detail Elements
   cutoffBackToListBtn: document.getElementById('cutoffBackToListBtn'),
@@ -788,11 +788,10 @@ function getFilteredCutoffList() {
 }
 
 function renderCutoffTable() {
-  const cardList = el.cutoffCardList;
-  if (!cardList) return;
+  if (!el.cutoffTableBody) return;
 
   if (!state.cutoffList || state.cutoffList.length === 0) {
-    cardList.innerHTML = '<div class="cutoff-placeholder-msg">Loading SHG Cutoff data...</div>';
+    el.cutoffTableBody.innerHTML = '<tr><td colspan="5" class="placeholder-row">Loading SHG Cutoff data...</td></tr>';
     return;
   }
 
@@ -803,10 +802,12 @@ function renderCutoffTable() {
       const key = 'statCutoff' + d.slice(0, 2);
       if (el[key]) el[key].textContent = '0';
     });
-    cardList.innerHTML = `
-      <div class="cutoff-placeholder-msg">
-        Select a <strong>Gram Panchayat</strong> and <strong>Village</strong> above to view SHG list.
-      </div>
+    el.cutoffTableBody.innerHTML = `
+      <tr>
+        <td colspan="5" class="placeholder-row">
+          Please select a <strong>Gram Panchayat</strong> and <strong>Village</strong> above to view SHGs.
+        </td>
+      </tr>
     `;
     return;
   }
@@ -818,10 +819,12 @@ function renderCutoffTable() {
       const key = 'statCutoff' + d.slice(0, 2);
       if (el[key]) el[key].textContent = '0';
     });
-    cardList.innerHTML = `
-      <div class="cutoff-placeholder-msg">
-        Please select a <strong>Village</strong> for <strong>${escapeHtml(state.selectedCutoffGp)}</strong> above to view SHGs.
-      </div>
+    el.cutoffTableBody.innerHTML = `
+      <tr>
+        <td colspan="5" class="placeholder-row">
+          Please select a <strong>Village</strong> for <strong>${escapeHtml(state.selectedCutoffGp)}</strong> above to view SHGs.
+        </td>
+      </tr>
     `;
     return;
   }
@@ -850,7 +853,7 @@ function renderCutoffTable() {
   if (el.statCutoff18) el.statCutoff18.textContent = dateCounts['18.08.2026'];
 
   if (filtered.length === 0) {
-    cardList.innerHTML = '<div class="cutoff-placeholder-msg">No SHGs match the selected filters.</div>';
+    el.cutoffTableBody.innerHTML = '<tr><td colspan="5" class="placeholder-row">No SHGs match the selected filters.</td></tr>';
     return;
   }
 
@@ -869,46 +872,44 @@ function renderCutoffTable() {
       if (resp[d]) markedCount++;
     });
 
-    let badgeClass = 'badge-neutral';
-    let badgeText = '0/7 Pending';
+    let statusBadgeHtml = '';
     if (markedCount === 7) {
-      badgeClass = 'badge-success';
-      badgeText = '✓ 7/7 Complete';
+      statusBadgeHtml = '<span class="status-badge badge-success">✓ 7/7 Dates Complete</span>';
     } else if (markedCount > 0) {
-      badgeClass = 'badge-warning';
-      badgeText = `${markedCount}/7 Marked`;
+      statusBadgeHtml = `<span class="status-badge badge-warning">${markedCount}/7 Dates Marked</span>`;
+    } else {
+      statusBadgeHtml = '<span class="status-badge badge-neutral">0/7 Dates Pending</span>';
     }
 
-    // Progress bar percentage
-    const pct = Math.round((markedCount / 7) * 100);
-
     html += `
-    <div class="cutoff-shg-card" onclick="openCutoffDetail(${index})">
-      <div class="cutoff-card-left">
-        <span class="cutoff-card-sl">${item.sl || (index + 1)}</span>
-        <div class="cutoff-card-info">
-          <span class="cutoff-card-name">${escapeHtml(item.shgName)}</span>
-          <span class="cutoff-card-code">${escapeHtml(item.shgCode)}</span>
-          <span class="cutoff-card-location">${escapeHtml(item.village)}</span>
-        </div>
-      </div>
-      <div class="cutoff-card-right">
-        <div class="cutoff-card-progress-wrap">
-          <span class="status-badge ${badgeClass}">${badgeText}</span>
-          <div class="cutoff-progress-bar"><div class="cutoff-progress-fill" style="width:${pct}%"></div></div>
-        </div>
-        <button class="btn btn-sm btn-primary cutoff-card-btn">Open ➔</button>
-      </div>
-    </div>`;
+      <tr onclick="openCutoffDetail(${index})" class="clickable-row">
+        <td data-label="Sl" class="text-muted" style="font-size:0.8rem;">${item.sl || (index + 1)}</td>
+        <td data-label="SHG">
+          <div class="member-name-cell">
+            <span class="m-name">${escapeHtml(item.shgName)}</span>
+            <span class="m-code">${escapeHtml(item.shgCode)}</span>
+          </div>
+        </td>
+        <td data-label="Village">
+          <span class="m-shg">${escapeHtml(item.village)}</span>
+        </td>
+        <td data-label="Cutoff Status" class="text-center">${statusBadgeHtml}</td>
+        <td data-label="Action" class="text-center">
+          <button class="btn btn-sm btn-primary">
+            Record Cutoff ➔
+          </button>
+        </td>
+      </tr>
+    `;
   });
 
   if (filtered.length > displayItems.length) {
-    html += `<div class="cutoff-placeholder-msg" style="font-weight:600; color:var(--primary);">
+    html += `<tr><td colspan="5" class="placeholder-row" style="padding:1rem; font-weight:600; color:var(--primary);">
       Showing first ${displayItems.length} of ${filtered.length} SHGs. Select a Village to narrow down.
-    </div>`;
+    </td></tr>`;
   }
 
-  cardList.innerHTML = html;
+  el.cutoffTableBody.innerHTML = html;
 }
 
 function openCutoffDetail(index) {
