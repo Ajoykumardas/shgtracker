@@ -506,23 +506,23 @@ function renderMembersTable() {
 
     html += `
       <tr onclick="openMemberDetail(${idx})" class="clickable-row">
-        <td class="text-muted" style="font-size:0.8rem;">${idx + 1}</td>
-        <td>
+        <td data-label="Sl" class="text-muted" style="font-size:0.8rem;">${idx + 1}</td>
+        <td data-label="Member">
           <div class="member-name-cell">
             <span class="m-name">${escapeHtml(m.mn)}</span>
             <span class="m-code">${escapeHtml(m.mc)}</span>
           </div>
         </td>
-        <td>
+        <td data-label="SHG">
           <div class="member-shg-cell">
             <span class="m-shg">${escapeHtml(m.sn)}</span>
             <span class="m-village">${escapeHtml(m.vil)}</span>
           </div>
         </td>
-        <td class="text-center">${ekycBadge}</td>
-        <td class="text-center">${phoneBadge}</td>
-        <td class="text-center">${reasonBadgeHtml}</td>
-        <td class="text-center">
+        <td data-label="eKYC" class="text-center">${ekycBadge}</td>
+        <td data-label="Phone" class="text-center">${phoneBadge}</td>
+        <td data-label="Reason" class="text-center">${reasonBadgeHtml}</td>
+        <td data-label="Action" class="text-center">
           <button class="btn btn-sm ${isFullyVerified ? 'btn-outline' : 'btn-primary'}">
             ${isFullyVerified ? 'View' : 'Record Reason'}
           </button>
@@ -835,17 +835,17 @@ function renderCutoffTable() {
     }
 
     html += `<tr onclick="openCutoffDetail(${index})" class="clickable-row">
-      <td class="text-muted" style="font-size:0.8rem;">${item.sl || (index + 1)}</td>
-      <td><strong>${escapeHtml(item.gp)}</strong></td>
-      <td><span>${escapeHtml(item.village)}</span></td>
-      <td>
+      <td data-label="Sl" class="text-muted" style="font-size:0.8rem;">${item.sl || (index + 1)}</td>
+      <td data-label="GP"><strong>${escapeHtml(item.gp)}</strong></td>
+      <td data-label="Village"><span>${escapeHtml(item.village)}</span></td>
+      <td data-label="SHG">
         <div class="shg-info-cell">
           <span class="shg-name-text">${escapeHtml(item.shgName)}</span>
           <span class="shg-code-text">${escapeHtml(item.shgCode)}</span>
         </div>
       </td>
-      <td class="text-center">${statusBadgeHtml}</td>
-      <td class="text-center">
+      <td data-label="Status" class="text-center">${statusBadgeHtml}</td>
+      <td data-label="Action" class="text-center">
         <button class="btn btn-sm btn-primary">
           Record Cutoff ➔
         </button>
