@@ -1080,12 +1080,27 @@ function showNextCutoffShg() {
   }
 }
 
-async function saveCutoffDetail(autoAdvance = true) {
+async function saveCutoffDetail(autoAdvance = false) {
   const shg = state.cutoffCurrentList[state.activeCutoffIndex];
   if (!shg) return;
 
+  const resp = state.savedCutoff[shg.shgCode] || {};
+  
+  // Validation: Check if at least one date has been selected (Yes or No)
+  let selectedCount = 0;
+  CUTOFF_DATES.forEach(d => {
+    if (resp[d] === 'Yes' || resp[d] === 'No') {
+      selectedCount++;
+    }
+  });
+
+  if (selectedCount === 0) {
+    showToast('⚠️ Please select Yes or No for at least one cutoff date before saving.');
+    return;
+  }
+
   const payload = {
-    [shg.shgCode]: state.savedCutoff[shg.shgCode] || {}
+    [shg.shgCode]: resp
   };
 
   try {
