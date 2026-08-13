@@ -118,6 +118,7 @@ const el = {
   statCutoff17: document.getElementById('statCutoff17'),
   statCutoff18: document.getElementById('statCutoff18'),
   cutoffTableBody: document.getElementById('cutoffTableBody'),
+  cutoffStatsSection: document.getElementById('cutoffStatsSection'),
 
   // Cutoff Detail Elements
   cutoffBackToListBtn: document.getElementById('cutoffBackToListBtn'),
@@ -795,13 +796,31 @@ function renderCutoffTable() {
     return;
   }
 
-  // 1. If no GP and no Search query -> prompt to select GP & Village
-  if (!state.selectedCutoffGp && !state.selectedCutoffVillage && !state.cutoffSearchQuery) {
-    if (el.statCutoffTotal) el.statCutoffTotal.textContent = '0';
-    CUTOFF_DATES.forEach(d => {
-      const key = 'statCutoff' + d.slice(0, 2);
-      if (el[key]) el[key].textContent = '0';
+  // 1. Home / Initial State (No GP & No Village selected)
+  if (!state.selectedCutoffGp && !state.selectedCutoffVillage) {
+    // Show stats summary section on Home page showing Block-wide overall totals
+    if (el.cutoffStatsSection) el.cutoffStatsSection.style.display = 'block';
+
+    const totalShgsCount = state.cutoffList.length;
+    if (el.statCutoffTotal) el.statCutoffTotal.textContent = totalShgsCount.toLocaleString();
+
+    const blockDateCounts = {};
+    CUTOFF_DATES.forEach(d => blockDateCounts[d] = 0);
+    state.cutoffList.forEach(item => {
+      const resp = state.savedCutoff[item.shgCode] || {};
+      CUTOFF_DATES.forEach(d => {
+        if (resp[d] === 'Yes') blockDateCounts[d]++;
+      });
     });
+
+    if (el.statCutoff12) el.statCutoff12.textContent = blockDateCounts['12.08.2026'];
+    if (el.statCutoff13) el.statCutoff13.textContent = blockDateCounts['13.08.2026'];
+    if (el.statCutoff14) el.statCutoff14.textContent = blockDateCounts['14.08.2026'];
+    if (el.statCutoff15) el.statCutoff15.textContent = blockDateCounts['15.08.2026'];
+    if (el.statCutoff16) el.statCutoff16.textContent = blockDateCounts['16.08.2026'];
+    if (el.statCutoff17) el.statCutoff17.textContent = blockDateCounts['17.08.2026'];
+    if (el.statCutoff18) el.statCutoff18.textContent = blockDateCounts['18.08.2026'];
+
     el.cutoffTableBody.innerHTML = `
       <tr>
         <td colspan="5" class="placeholder-row">
@@ -812,13 +831,10 @@ function renderCutoffTable() {
     return;
   }
 
-  // 2. If GP is selected but NO Village and NO Search query -> prompt to select Village
-  if (state.selectedCutoffGp && !state.selectedCutoffVillage && !state.cutoffSearchQuery) {
-    if (el.statCutoffTotal) el.statCutoffTotal.textContent = '0';
-    CUTOFF_DATES.forEach(d => {
-      const key = 'statCutoff' + d.slice(0, 2);
-      if (el[key]) el[key].textContent = '0';
-    });
+  // 2. GP is selected but NO Village is selected -> Hide stats summary section
+  if (state.selectedCutoffGp && !state.selectedCutoffVillage) {
+    if (el.cutoffStatsSection) el.cutoffStatsSection.style.display = 'none';
+
     el.cutoffTableBody.innerHTML = `
       <tr>
         <td colspan="5" class="placeholder-row">
@@ -829,41 +845,18 @@ function renderCutoffTable() {
     return;
   }
 
+  // 3. Both GP & Village selected -> Hide stats section and display clean SHG list table
+  if (el.cutoffStatsSection) el.cutoffStatsSection.style.display = 'none';
+
   const filtered = getFilteredCutoffList();
-
-  // Update Stats
-  if (el.statCutoffTotal) el.statCutoffTotal.textContent = filtered.length.toLocaleString();
-
-  const dateCounts = {};
-  CUTOFF_DATES.forEach(d => dateCounts[d] = 0);
-
-  filtered.forEach(item => {
-    const resp = state.savedCutoff[item.shgCode] || {};
-    CUTOFF_DATES.forEach(d => {
-      if (resp[d] === 'Yes') dateCounts[d]++;
-    });
-  });
-
-  if (el.statCutoff12) el.statCutoff12.textContent = dateCounts['12.08.2026'];
-  if (el.statCutoff13) el.statCutoff13.textContent = dateCounts['13.08.2026'];
-  if (el.statCutoff14) el.statCutoff14.textContent = dateCounts['14.08.2026'];
-  if (el.statCutoff15) el.statCutoff15.textContent = dateCounts['15.08.2026'];
-  if (el.statCutoff16) el.statCutoff16.textContent = dateCounts['16.08.2026'];
-  if (el.statCutoff17) el.statCutoff17.textContent = dateCounts['17.08.2026'];
-  if (el.statCutoff18) el.statCutoff18.textContent = dateCounts['18.08.2026'];
 
   if (filtered.length === 0) {
     el.cutoffTableBody.innerHTML = '<tr><td colspan="5" class="placeholder-row">No SHGs match the selected filters.</td></tr>';
     return;
   }
 
-  // Display items
-  const displayItems = (filtered.length > 300 && !state.selectedCutoffGp && !state.cutoffSearchQuery)
-    ? filtered.slice(0, 300)
-    : filtered;
-
   let html = '';
-  displayItems.forEach((item, index) => {
+  filtered.forEach((item, index) => {
     const resp = state.savedCutoff[item.shgCode] || {};
     
     // Calculate how many dates are marked (Yes or No)
@@ -902,12 +895,6 @@ function renderCutoffTable() {
       </tr>
     `;
   });
-
-  if (filtered.length > displayItems.length) {
-    html += `<tr><td colspan="5" class="placeholder-row" style="padding:1rem; font-weight:600; color:var(--primary);">
-      Showing first ${displayItems.length} of ${filtered.length} SHGs. Select a Village to narrow down.
-    </td></tr>`;
-  }
 
   el.cutoffTableBody.innerHTML = html;
 }
