@@ -932,7 +932,7 @@ function renderCutoffDetail() {
   if (el.cutoffNextShgBtn) el.cutoffNextShgBtn.disabled = (state.activeCutoffIndex >= state.cutoffCurrentList.length - 1);
 
   if (el.detCutoffShgName) el.detCutoffShgName.textContent = shg.shgName;
-  if (el.detCutoffShgCode) el.detCutoffShgCode.textContent = `SHG Code: ${shg.shgCode}`;
+  if (el.detCutoffShgCode) el.detCutoffShgCode.textContent = `(${shg.shgCode})`;
   if (el.detCutoffGpTag) el.detCutoffGpTag.textContent = `GP: ${shg.gp}`;
   if (el.detCutoffVillageTag) el.detCutoffVillageTag.textContent = `Village: ${shg.village}`;
 
