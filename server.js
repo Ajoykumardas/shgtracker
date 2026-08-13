@@ -8,6 +8,8 @@ const PUBLIC_DIR = path.join(__dirname, 'public');
 const DATA_DIR = path.join(__dirname, 'data');
 const REASONS_FILE = path.join(DATA_DIR, 'member_reasons.json');
 
+const CUTOFF_FILE = path.join(DATA_DIR, 'shg_cutoff_responses.json');
+
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
@@ -23,6 +25,7 @@ const MIME_TYPES = {
 let membersData = null;
 let hierarchyData = null;
 let savedReasons = {};
+let savedCutoff = {};
 
 function loadData() {
   const membersFile = path.join(PUBLIC_DIR, 'members.json');
@@ -52,6 +55,15 @@ function loadData() {
       savedReasons = JSON.parse(raw);
     } catch (e) {
       savedReasons = {};
+    }
+  }
+
+  if (fs.existsSync(CUTOFF_FILE)) {
+    try {
+      const raw = fs.readFileSync(CUTOFF_FILE, 'utf-8');
+      savedCutoff = JSON.parse(raw);
+    } catch (e) {
+      savedCutoff = {};
     }
   }
 }
@@ -99,6 +111,31 @@ const server = http.createServer((req, res) => {
           fs.writeFileSync(REASONS_FILE, JSON.stringify(savedReasons, null, 2), 'utf-8');
           res.writeHead(200, { 'Content-Type': 'application/json' });
           return res.end(JSON.stringify({ success: true, count: Object.keys(savedReasons).length }));
+        } catch (err) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({ error: 'Invalid JSON payload' }));
+        }
+      });
+      return;
+    }
+  }
+
+  if (pathname === '/api/cutoff') {
+    if (req.method === 'GET') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify(savedCutoff));
+    }
+
+    if (req.method === 'POST') {
+      let body = '';
+      req.on('data', chunk => body += chunk);
+      req.on('end', () => {
+        try {
+          const payload = JSON.parse(body);
+          savedCutoff = { ...savedCutoff, ...payload };
+          fs.writeFileSync(CUTOFF_FILE, JSON.stringify(savedCutoff, null, 2), 'utf-8');
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({ success: true, count: Object.keys(savedCutoff).length }));
         } catch (err) {
           res.writeHead(400, { 'Content-Type': 'application/json' });
           return res.end(JSON.stringify({ error: 'Invalid JSON payload' }));

@@ -10,12 +10,19 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <!-- Clean Top Header -->
   <header class="app-header">
     <div class="header-container">
       <div class="brand-title">
-        <h2>SHG Verification Tracker</h2>
-        <p>GP ➔ Village ➔ SHG ➔ Active Member List</p>
+        <h2>SHG Verification & Cutoff Tracker</h2>
+        <p>Gram Panchayat ➔ Village ➔ SHG Tracker</p>
+      </div>
+      <div class="header-nav-tabs">
+        <button id="navTabMembers" class="nav-tab active">
+          👥 Member Reason Verification
+        </button>
+        <button id="navTabCutoff" class="nav-tab">
+          📋 SHG Cutoff Tracker
+        </button>
       </div>
       <div class="header-actions">
         <button id="exportAllCsvBtn" class="btn btn-primary" title="Export All Block Members & Recorded Responses to CSV">
@@ -24,7 +31,15 @@
             <polyline points="7 10 12 15 17 10"></polyline>
             <line x1="12" y1="15" x2="12" y2="3"></line>
           </svg>
-          Export CSV (All Members)
+          Export Members CSV
+        </button>
+        <button id="exportCutoffCsvBtn" class="btn btn-primary" style="display:none;" title="Export Date-Wise SHG Cutoff Responses to CSV">
+          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          Export Cutoff CSV
         </button>
       </div>
     </div>
@@ -208,6 +223,112 @@
 
         <div id="savedTimestampNotice" class="saved-notice" style="display:none;">
           Last saved: <span id="savedTimestampText"></span>
+        </div>
+      </section>
+    </div>
+
+    <!-- PAGE 3: SHG Cutoff Tracker View -->
+    <div id="shgCutoffView" class="app-view" style="display:none;">
+      <!-- Filter Bar Card -->
+      <section class="selector-card">
+        <div class="cutoff-header-title">
+          <h3>SHG Cutoff Date-Wise Status Tracker</h3>
+          <p>Tap <strong>Yes</strong> or <strong>No</strong> for each date (12.08.2026 to 18.08.2026) and click Save</p>
+        </div>
+        <div class="selector-grid">
+          <div class="selector-item">
+            <label for="selectCutoffGp">1. Gram Panchayat (GP)</label>
+            <select id="selectCutoffGp">
+              <option value="">-- All Gram Panchayats --</option>
+            </select>
+          </div>
+
+          <div class="selector-item">
+            <label for="selectCutoffVillage">2. Village</label>
+            <select id="selectCutoffVillage" disabled>
+              <option value="">-- All Villages --</option>
+            </select>
+          </div>
+
+          <div class="selector-item">
+            <label for="cutoffSearchInput">3. Search SHG Name or Code</label>
+            <input type="text" id="cutoffSearchInput" placeholder="Type SHG Name or Code..." />
+          </div>
+        </div>
+      </section>
+
+      <!-- Stats Summary Card -->
+      <section class="stats-card">
+        <div class="cutoff-stats-grid">
+          <div class="stat-box">
+            <span class="stat-label">TOTAL SHGs DISPLAYED</span>
+            <span class="stat-num" id="statCutoffTotal">0</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-label">12.08 COMPLETED</span>
+            <span class="stat-num stat-green" id="statCutoff12">0</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-label">13.08 COMPLETED</span>
+            <span class="stat-num stat-green" id="statCutoff13">0</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-label">14.08 COMPLETED</span>
+            <span class="stat-num stat-green" id="statCutoff14">0</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-label">15.08 COMPLETED</span>
+            <span class="stat-num stat-green" id="statCutoff15">0</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-label">16.08 COMPLETED</span>
+            <span class="stat-num stat-green" id="statCutoff16">0</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-label">17.08 COMPLETED</span>
+            <span class="stat-num stat-green" id="statCutoff17">0</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-label">18.08 COMPLETED</span>
+            <span class="stat-num stat-green" id="statCutoff18">0</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Save & Action Bar -->
+      <div class="cutoff-action-bar">
+        <span id="cutoffUnsavedNotice" class="unsaved-badge" style="display:none;">⚠️ Unsaved Changes</span>
+        <button id="saveCutoffBtn" class="btn btn-primary btn-lg">
+          💾 Save Cutoff Responses
+        </button>
+      </div>
+
+      <!-- Cutoff Table Container -->
+      <section class="members-table-card">
+        <div class="table-responsive">
+          <table class="members-table cutoff-table">
+            <thead>
+              <tr>
+                <th style="width: 40px;">Sl</th>
+                <th>GP & Village</th>
+                <th>SHG Code & Name</th>
+                <th class="text-center">12.08.2026</th>
+                <th class="text-center">13.08.2026</th>
+                <th class="text-center">14.08.2026</th>
+                <th class="text-center">15.08.2026</th>
+                <th class="text-center">16.08.2026</th>
+                <th class="text-center">17.08.2026</th>
+                <th class="text-center">18.08.2026</th>
+              </tr>
+            </thead>
+            <tbody id="cutoffTableBody">
+              <tr>
+                <td colspan="10" class="placeholder-row">
+                  Loading SHG Cutoff data...
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </section>
     </div>

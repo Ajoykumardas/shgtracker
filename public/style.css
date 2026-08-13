@@ -774,3 +774,195 @@ body {
     text-align: center;
   }
 }
+
+/* Header Nav Tabs */
+.header-nav-tabs {
+  display: flex;
+  gap: 0.5rem;
+  background-color: #f1f5f9;
+  padding: 0.25rem;
+  border-radius: var(--radius);
+}
+
+.nav-tab {
+  background: transparent;
+  border: none;
+  padding: 0.45rem 0.85rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.nav-tab:hover {
+  color: var(--text-main);
+}
+
+.nav-tab.active {
+  background-color: #ffffff;
+  color: var(--primary);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+}
+
+/* SHG Cutoff Header & Stats */
+.cutoff-header-title h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.cutoff-header-title p {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-bottom: 0.85rem;
+}
+
+.stats-card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.85rem 1rem;
+  margin-bottom: 1rem;
+  box-shadow: var(--shadow);
+}
+
+.cutoff-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 0.65rem;
+}
+
+.stat-box {
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 0.5rem 0.65rem;
+  text-align: center;
+}
+
+.stat-box .stat-label {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.03em;
+}
+
+.stat-box .stat-num {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-main);
+  font-family: var(--font-mono);
+}
+
+.stat-box .stat-num.stat-green {
+  color: #16a34a;
+}
+
+.cutoff-action-bar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.unsaved-badge {
+  background-color: var(--warning-bg);
+  color: var(--warning);
+  border: 1px solid var(--warning-border);
+  padding: 0.35rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.7; }
+  50% { opacity: 1; }
+  100% { opacity: 0.7; }
+}
+
+/* Cutoff Table & Toggle Buttons */
+.cutoff-table th {
+  padding: 0.65rem 0.4rem;
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+.cutoff-table td {
+  padding: 0.55rem 0.4rem;
+  vertical-align: middle;
+  font-size: 0.82rem;
+}
+
+.shg-info-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.shg-name-text {
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.shg-code-text {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.gp-vlg-text {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  line-height: 1.2;
+}
+
+/* Date-wise Yes / No Toggle Segment */
+.toggle-segment {
+  display: inline-flex;
+  background-color: #f1f5f9;
+  border-radius: 6px;
+  padding: 2px;
+  border: 1px solid #cbd5e1;
+  gap: 2px;
+}
+
+.toggle-btn {
+  border: none;
+  background: transparent;
+  padding: 0.2rem 0.45rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  color: #64748b;
+  min-width: 34px;
+  text-align: center;
+}
+
+.toggle-btn.btn-yes.selected {
+  background-color: #16a34a;
+  color: #ffffff;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+}
+
+.toggle-btn.btn-no.selected {
+  background-color: #dc2626;
+  color: #ffffff;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+}
+
+.toggle-btn:hover:not(.selected) {
+  background-color: #e2e8f0;
+  color: #0f172a;
+}
+
