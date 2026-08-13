@@ -7,8 +7,12 @@ const PORT = process.env.PORT || 3000;
 const PUBLIC_DIR = path.join(__dirname, 'public');
 const DATA_DIR = path.join(__dirname, 'data');
 const REASONS_FILE = path.join(DATA_DIR, 'member_reasons.json');
+const REASONS_SEED  = path.join(DATA_DIR, 'seed_reasons.json');   // tracked in git
+const CUTOFF_FILE   = path.join(DATA_DIR, 'shg_cutoff_responses.json');
+const CUTOFF_SEED   = path.join(DATA_DIR, 'seed_cutoff.json');    // tracked in git
 
-const CUTOFF_FILE = path.join(DATA_DIR, 'shg_cutoff_responses.json');
+// Ensure data dir exists on fresh Render deploy
+if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -49,19 +53,34 @@ function loadData() {
     }
   }
 
-  if (fs.existsSync(REASONS_FILE)) {
+  // Load member reasons: runtime file first, fall back to git-tracked seed
+  const reasonsSrc = fs.existsSync(REASONS_FILE) ? REASONS_FILE
+                   : fs.existsSync(REASONS_SEED)  ? REASONS_SEED
+                   : null;
+  if (reasonsSrc) {
     try {
-      const raw = fs.readFileSync(REASONS_FILE, 'utf-8');
-      savedReasons = JSON.parse(raw);
+      savedReasons = JSON.parse(fs.readFileSync(reasonsSrc, 'utf-8'));
+      console.log(`Loaded ${Object.keys(savedReasons).length} member reasons from ${path.basename(reasonsSrc)}`);
+      // If we loaded from seed, write runtime file so future saves append correctly
+      if (reasonsSrc === REASONS_SEED && !fs.existsSync(REASONS_FILE)) {
+        fs.writeFileSync(REASONS_FILE, JSON.stringify(savedReasons));
+      }
     } catch (e) {
       savedReasons = {};
     }
   }
 
-  if (fs.existsSync(CUTOFF_FILE)) {
+  // Load cutoff responses: runtime file first, fall back to git-tracked seed
+  const cutoffSrc = fs.existsSync(CUTOFF_FILE) ? CUTOFF_FILE
+                  : fs.existsSync(CUTOFF_SEED)  ? CUTOFF_SEED
+                  : null;
+  if (cutoffSrc) {
     try {
-      const raw = fs.readFileSync(CUTOFF_FILE, 'utf-8');
-      savedCutoff = JSON.parse(raw);
+      savedCutoff = JSON.parse(fs.readFileSync(cutoffSrc, 'utf-8'));
+      console.log(`Loaded ${Object.keys(savedCutoff).length} cutoff entries from ${path.basename(cutoffSrc)}`);
+      if (cutoffSrc === CUTOFF_SEED && !fs.existsSync(CUTOFF_FILE)) {
+        fs.writeFileSync(CUTOFF_FILE, JSON.stringify(savedCutoff));
+      }
     } catch (e) {
       savedCutoff = {};
     }
