@@ -257,40 +257,52 @@
         </div>
       </section>
 
-      <!-- Stats Summary Card -->
-      <section class="stats-card">
-        <div class="cutoff-stats-grid">
-          <div class="stat-box">
-            <span class="stat-label">TOTAL SHGs</span>
-            <span class="stat-num" id="statCutoffTotal">0</span>
+      <!-- Stats Summary Card (Redesigned Hero Bar) -->
+      <section class="stats-card cutoff-stats-hero-card">
+        <div class="stats-hero-layout">
+          <div class="total-shg-badge-card">
+            <div class="total-shg-icon">📊</div>
+            <div class="total-shg-content">
+              <span class="total-shg-label">TOTAL SHGs</span>
+              <span class="total-shg-val" id="statCutoffTotal">0</span>
+            </div>
           </div>
-          <div class="stat-box">
-            <span class="stat-label">12.08 DONE</span>
-            <span class="stat-num stat-green" id="statCutoff12">0</span>
-          </div>
-          <div class="stat-box">
-            <span class="stat-label">13.08 DONE</span>
-            <span class="stat-num stat-green" id="statCutoff13">0</span>
-          </div>
-          <div class="stat-box">
-            <span class="stat-label">14.08 DONE</span>
-            <span class="stat-num stat-green" id="statCutoff14">0</span>
-          </div>
-          <div class="stat-box">
-            <span class="stat-label">15.08 DONE</span>
-            <span class="stat-num stat-green" id="statCutoff15">0</span>
-          </div>
-          <div class="stat-box">
-            <span class="stat-label">16.08 DONE</span>
-            <span class="stat-num stat-green" id="statCutoff16">0</span>
-          </div>
-          <div class="stat-box">
-            <span class="stat-label">17.08 DONE</span>
-            <span class="stat-num stat-green" id="statCutoff17">0</span>
-          </div>
-          <div class="stat-box">
-            <span class="stat-label">18.08 DONE</span>
-            <span class="stat-num stat-green" id="statCutoff18">0</span>
+          <div class="cutoff-dates-grid">
+            <div class="date-stat-card">
+              <span class="date-stat-label">📅 12.08</span>
+              <span class="date-stat-val" id="statCutoff12">0</span>
+              <span class="date-stat-sub">DONE</span>
+            </div>
+            <div class="date-stat-card">
+              <span class="date-stat-label">📅 13.08</span>
+              <span class="date-stat-val" id="statCutoff13">0</span>
+              <span class="date-stat-sub">DONE</span>
+            </div>
+            <div class="date-stat-card">
+              <span class="date-stat-label">📅 14.08</span>
+              <span class="date-stat-val" id="statCutoff14">0</span>
+              <span class="date-stat-sub">DONE</span>
+            </div>
+            <div class="date-stat-card">
+              <span class="date-stat-label">📅 15.08</span>
+              <span class="date-stat-val" id="statCutoff15">0</span>
+              <span class="date-stat-sub">DONE</span>
+            </div>
+            <div class="date-stat-card">
+              <span class="date-stat-label">📅 16.08</span>
+              <span class="date-stat-val" id="statCutoff16">0</span>
+              <span class="date-stat-sub">DONE</span>
+            </div>
+            <div class="date-stat-card">
+              <span class="date-stat-label">📅 17.08</span>
+              <span class="date-stat-val" id="statCutoff17">0</span>
+              <span class="date-stat-sub">DONE</span>
+            </div>
+            <div class="date-stat-card">
+              <span class="date-stat-label">📅 18.08</span>
+              <span class="date-stat-val" id="statCutoff18">0</span>
+              <span class="date-stat-sub">DONE</span>
+            </div>
           </div>
         </div>
       </section>
@@ -324,24 +336,33 @@
       </div>
 
       <!-- SHG Profile Header Card -->
-      <section class="detail-card profile-card">
-        <div class="profile-header">
+      <section class="detail-card profile-card cutoff-detail-header-card">
+        <div class="cutoff-header-top-row">
           <div class="profile-tag-row">
             <span class="status-badge badge-neutral" id="detCutoffProgressBadge">0 of 7 Dates Marked</span>
-            <span class="tag-pill" id="detCutoffGpTag">GP</span>
-            <span class="tag-pill" id="detCutoffVillageTag">Village</span>
+            <span class="tag-pill tag-gp" id="detCutoffGpTag">GP</span>
+            <span class="tag-pill tag-village" id="detCutoffVillageTag">Village</span>
           </div>
+        </div>
+        <div class="cutoff-header-main">
           <h2 class="det-member-name" id="detCutoffShgName">SHG Name</h2>
           <div class="det-member-code code-font" id="detCutoffShgCode">SHG Code: 04003114673</div>
+        </div>
+        <div class="cutoff-header-progress-bar-wrap">
+          <div class="cutoff-header-progress-bar">
+            <div class="cutoff-header-progress-fill" id="detCutoffProgressFill" style="width: 0%;"></div>
+          </div>
         </div>
       </section>
 
       <!-- Date-Wise Status Cards Section -->
       <section class="detail-card form-card">
-        <h3 class="form-section-title">
-          📋 Record Date-Wise Cutoff Completion
-        </h3>
-        <p class="form-section-subtitle">Tap <strong>Yes</strong> or <strong>No</strong> for each cutoff date below:</p>
+        <div class="form-card-title-row">
+          <h3 class="form-section-title">
+            📋 Record Date-Wise Cutoff Completion
+          </h3>
+          <p class="form-section-subtitle">Select <strong>Yes</strong> or <strong>No</strong> for each cutoff date below:</p>
+        </div>
 
         <!-- In-card Success Alert Banner -->
         <div id="cutoffFormSuccessAlert" class="form-success-alert" style="display:none;">
@@ -355,11 +376,15 @@
           <div class="date-entry-card" id="cardDate_12.08.2026">
             <div class="date-card-header">
               <span class="date-card-title">📅 12.08.2026</span>
-              <span class="date-card-subtitle">Cutoff Completion</span>
+              <span class="date-card-status-pill" id="cardStatusPill_12.08.2026">Not Set</span>
             </div>
             <div class="toggle-segment-large">
-              <button class="toggle-btn-lg btn-yes" data-dt="12.08.2026" data-val="Yes" onclick="handleDetailCutoffToggle(this)">Yes</button>
-              <button class="toggle-btn-lg btn-no" data-dt="12.08.2026" data-val="No" onclick="handleDetailCutoffToggle(this)">No</button>
+              <button class="toggle-btn-lg btn-yes" data-dt="12.08.2026" data-val="Yes" onclick="handleDetailCutoffToggle(this)">
+                <span class="btn-icon">✓</span> Yes
+              </button>
+              <button class="toggle-btn-lg btn-no" data-dt="12.08.2026" data-val="No" onclick="handleDetailCutoffToggle(this)">
+                <span class="btn-icon">✕</span> No
+              </button>
             </div>
           </div>
 
@@ -367,11 +392,15 @@
           <div class="date-entry-card" id="cardDate_13.08.2026">
             <div class="date-card-header">
               <span class="date-card-title">📅 13.08.2026</span>
-              <span class="date-card-subtitle">Cutoff Completion</span>
+              <span class="date-card-status-pill" id="cardStatusPill_13.08.2026">Not Set</span>
             </div>
             <div class="toggle-segment-large">
-              <button class="toggle-btn-lg btn-yes" data-dt="13.08.2026" data-val="Yes" onclick="handleDetailCutoffToggle(this)">Yes</button>
-              <button class="toggle-btn-lg btn-no" data-dt="13.08.2026" data-val="No" onclick="handleDetailCutoffToggle(this)">No</button>
+              <button class="toggle-btn-lg btn-yes" data-dt="13.08.2026" data-val="Yes" onclick="handleDetailCutoffToggle(this)">
+                <span class="btn-icon">✓</span> Yes
+              </button>
+              <button class="toggle-btn-lg btn-no" data-dt="13.08.2026" data-val="No" onclick="handleDetailCutoffToggle(this)">
+                <span class="btn-icon">✕</span> No
+              </button>
             </div>
           </div>
 
@@ -379,11 +408,15 @@
           <div class="date-entry-card" id="cardDate_14.08.2026">
             <div class="date-card-header">
               <span class="date-card-title">📅 14.08.2026</span>
-              <span class="date-card-subtitle">Cutoff Completion</span>
+              <span class="date-card-status-pill" id="cardStatusPill_14.08.2026">Not Set</span>
             </div>
             <div class="toggle-segment-large">
-              <button class="toggle-btn-lg btn-yes" data-dt="14.08.2026" data-val="Yes" onclick="handleDetailCutoffToggle(this)">Yes</button>
-              <button class="toggle-btn-lg btn-no" data-dt="14.08.2026" data-val="No" onclick="handleDetailCutoffToggle(this)">No</button>
+              <button class="toggle-btn-lg btn-yes" data-dt="14.08.2026" data-val="Yes" onclick="handleDetailCutoffToggle(this)">
+                <span class="btn-icon">✓</span> Yes
+              </button>
+              <button class="toggle-btn-lg btn-no" data-dt="14.08.2026" data-val="No" onclick="handleDetailCutoffToggle(this)">
+                <span class="btn-icon">✕</span> No
+              </button>
             </div>
           </div>
 
@@ -391,11 +424,15 @@
           <div class="date-entry-card" id="cardDate_15.08.2026">
             <div class="date-card-header">
               <span class="date-card-title">📅 15.08.2026</span>
-              <span class="date-card-subtitle">Cutoff Completion</span>
+              <span class="date-card-status-pill" id="cardStatusPill_15.08.2026">Not Set</span>
             </div>
             <div class="toggle-segment-large">
-              <button class="toggle-btn-lg btn-yes" data-dt="15.08.2026" data-val="Yes" onclick="handleDetailCutoffToggle(this)">Yes</button>
-              <button class="toggle-btn-lg btn-no" data-dt="15.08.2026" data-val="No" onclick="handleDetailCutoffToggle(this)">No</button>
+              <button class="toggle-btn-lg btn-yes" data-dt="15.08.2026" data-val="Yes" onclick="handleDetailCutoffToggle(this)">
+                <span class="btn-icon">✓</span> Yes
+              </button>
+              <button class="toggle-btn-lg btn-no" data-dt="15.08.2026" data-val="No" onclick="handleDetailCutoffToggle(this)">
+                <span class="btn-icon">✕</span> No
+              </button>
             </div>
           </div>
 
@@ -403,11 +440,15 @@
           <div class="date-entry-card" id="cardDate_16.08.2026">
             <div class="date-card-header">
               <span class="date-card-title">📅 16.08.2026</span>
-              <span class="date-card-subtitle">Cutoff Completion</span>
+              <span class="date-card-status-pill" id="cardStatusPill_16.08.2026">Not Set</span>
             </div>
             <div class="toggle-segment-large">
-              <button class="toggle-btn-lg btn-yes" data-dt="16.08.2026" data-val="Yes" onclick="handleDetailCutoffToggle(this)">Yes</button>
-              <button class="toggle-btn-lg btn-no" data-dt="16.08.2026" data-val="No" onclick="handleDetailCutoffToggle(this)">No</button>
+              <button class="toggle-btn-lg btn-yes" data-dt="16.08.2026" data-val="Yes" onclick="handleDetailCutoffToggle(this)">
+                <span class="btn-icon">✓</span> Yes
+              </button>
+              <button class="toggle-btn-lg btn-no" data-dt="16.08.2026" data-val="No" onclick="handleDetailCutoffToggle(this)">
+                <span class="btn-icon">✕</span> No
+              </button>
             </div>
           </div>
 
@@ -415,11 +456,15 @@
           <div class="date-entry-card" id="cardDate_17.08.2026">
             <div class="date-card-header">
               <span class="date-card-title">📅 17.08.2026</span>
-              <span class="date-card-subtitle">Cutoff Completion</span>
+              <span class="date-card-status-pill" id="cardStatusPill_17.08.2026">Not Set</span>
             </div>
             <div class="toggle-segment-large">
-              <button class="toggle-btn-lg btn-yes" data-dt="17.08.2026" data-val="Yes" onclick="handleDetailCutoffToggle(this)">Yes</button>
-              <button class="toggle-btn-lg btn-no" data-dt="17.08.2026" data-val="No" onclick="handleDetailCutoffToggle(this)">No</button>
+              <button class="toggle-btn-lg btn-yes" data-dt="17.08.2026" data-val="Yes" onclick="handleDetailCutoffToggle(this)">
+                <span class="btn-icon">✓</span> Yes
+              </button>
+              <button class="toggle-btn-lg btn-no" data-dt="17.08.2026" data-val="No" onclick="handleDetailCutoffToggle(this)">
+                <span class="btn-icon">✕</span> No
+              </button>
             </div>
           </div>
 
@@ -427,11 +472,15 @@
           <div class="date-entry-card" id="cardDate_18.08.2026">
             <div class="date-card-header">
               <span class="date-card-title">📅 18.08.2026</span>
-              <span class="date-card-subtitle">Cutoff Completion</span>
+              <span class="date-card-status-pill" id="cardStatusPill_18.08.2026">Not Set</span>
             </div>
             <div class="toggle-segment-large">
-              <button class="toggle-btn-lg btn-yes" data-dt="18.08.2026" data-val="Yes" onclick="handleDetailCutoffToggle(this)">Yes</button>
-              <button class="toggle-btn-lg btn-no" data-dt="18.08.2026" data-val="No" onclick="handleDetailCutoffToggle(this)">No</button>
+              <button class="toggle-btn-lg btn-yes" data-dt="18.08.2026" data-val="Yes" onclick="handleDetailCutoffToggle(this)">
+                <span class="btn-icon">✓</span> Yes
+              </button>
+              <button class="toggle-btn-lg btn-no" data-dt="18.08.2026" data-val="No" onclick="handleDetailCutoffToggle(this)">
+                <span class="btn-icon">✕</span> No
+              </button>
             </div>
           </div>
         </div>

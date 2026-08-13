@@ -968,6 +968,12 @@ function renderCutoffDetail() {
     }
   }
 
+  // Update detail header progress bar fill
+  const progressFill = document.getElementById('detCutoffProgressFill');
+  if (progressFill) {
+    progressFill.style.width = `${Math.round((markedCount / 7) * 100)}%`;
+  }
+
   // Populate visual toggle pills for each date
   CUTOFF_DATES.forEach(date => {
     const card = document.getElementById(`cardDate_${date}`);
@@ -977,6 +983,19 @@ function renderCutoffDetail() {
       const noBtn = card.querySelector('.btn-no');
       if (yesBtn) yesBtn.classList.toggle('selected', val === 'Yes');
       if (noBtn) noBtn.classList.toggle('selected', val === 'No');
+
+      card.classList.remove('card-selected-yes', 'card-selected-no');
+      const pill = document.getElementById(`cardStatusPill_${date}`);
+
+      if (val === 'Yes') {
+        card.classList.add('card-selected-yes');
+        if (pill) { pill.textContent = '✓ Done'; pill.className = 'date-card-status-pill pill-yes'; }
+      } else if (val === 'No') {
+        card.classList.add('card-selected-no');
+        if (pill) { pill.textContent = '✕ Pending'; pill.className = 'date-card-status-pill pill-no'; }
+      } else {
+        if (pill) { pill.textContent = 'Not Set'; pill.className = 'date-card-status-pill pill-neutral'; }
+      }
     }
   });
 
@@ -1010,7 +1029,7 @@ window.handleDetailCutoffToggle = function(btn) {
   // Save to local storage
   localStorage.setItem('shg_cutoff_responses', JSON.stringify(state.savedCutoff));
 
-  // Update visual button state immediately
+  // Update visual button state & card theme immediately
   const card = document.getElementById(`cardDate_${date}`);
   if (card) {
     const yesBtn = card.querySelector('.btn-yes');
@@ -1018,9 +1037,22 @@ window.handleDetailCutoffToggle = function(btn) {
     const newVal = state.savedCutoff[shg.shgCode][date];
     if (yesBtn) yesBtn.classList.toggle('selected', newVal === 'Yes');
     if (noBtn) noBtn.classList.toggle('selected', newVal === 'No');
+
+    card.classList.remove('card-selected-yes', 'card-selected-no');
+    const pill = document.getElementById(`cardStatusPill_${date}`);
+
+    if (newVal === 'Yes') {
+      card.classList.add('card-selected-yes');
+      if (pill) { pill.textContent = '✓ Done'; pill.className = 'date-card-status-pill pill-yes'; }
+    } else if (newVal === 'No') {
+      card.classList.add('card-selected-no');
+      if (pill) { pill.textContent = '✕ Pending'; pill.className = 'date-card-status-pill pill-no'; }
+    } else {
+      if (pill) { pill.textContent = 'Not Set'; pill.className = 'date-card-status-pill pill-neutral'; }
+    }
   }
 
-  // Update progress badge
+  // Update progress badge and progress bar
   const resp = state.savedCutoff[shg.shgCode] || {};
   let markedCount = 0;
   CUTOFF_DATES.forEach(d => { if (resp[d]) markedCount++; });
@@ -1036,6 +1068,11 @@ window.handleDetailCutoffToggle = function(btn) {
       el.detCutoffProgressBadge.textContent = '0 of 7 Dates Marked';
       el.detCutoffProgressBadge.className = 'status-badge badge-neutral';
     }
+  }
+
+  const progressFill = document.getElementById('detCutoffProgressFill');
+  if (progressFill) {
+    progressFill.style.width = `${Math.round((markedCount / 7) * 100)}%`;
   }
 };
 
