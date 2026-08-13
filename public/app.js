@@ -769,6 +769,19 @@ function renderCutoffTable() {
     return;
   }
 
+  // Hide list by default until GP, Village, or Search query is selected
+  if (!state.selectedCutoffGp && !state.selectedCutoffVillage && !state.cutoffSearchQuery) {
+    if (el.statCutoffTotal) el.statCutoffTotal.textContent = '0';
+    el.cutoffTableBody.innerHTML = `
+      <tr>
+        <td colspan="6" class="placeholder-row">
+          Please select a <strong>Gram Panchayat</strong>, <strong>Village</strong>, or type in the <strong>Search box</strong> above to view SHG list.
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
   const filtered = getFilteredCutoffList();
 
   // Update Stats
