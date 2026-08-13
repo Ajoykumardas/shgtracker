@@ -227,13 +227,13 @@
       </section>
     </div>
 
-    <!-- PAGE 3: SHG Cutoff Tracker View -->
-    <div id="shgCutoffView" class="app-view" style="display:none;">
+    <!-- PAGE 3: SHG Cutoff List View -->
+    <div id="shgCutoffListView" class="app-view" style="display:none;">
       <!-- Filter Bar Card -->
       <section class="selector-card">
         <div class="cutoff-header-title">
-          <h3>SHG Cutoff Date-Wise Status Tracker</h3>
-          <p>Select a <strong>Cutoff Date</strong> below, then tap <strong>Yes</strong> or <strong>No</strong> for each SHG</p>
+          <h3>SHG Cutoff Tracker</h3>
+          <p>Select GP and Village to view SHGs, then tap any SHG to record date-wise cutoff completion</p>
         </div>
         <div class="selector-grid">
           <div class="selector-item">
@@ -257,79 +257,45 @@
         </div>
       </section>
 
-      <!-- Date Selection Pill Bar -->
-      <section class="date-selector-card">
-        <div class="date-selector-header">
-          <span class="date-selector-label">📅 Select Cutoff Date:</span>
-        </div>
-        <div class="date-tabs-bar" id="dateTabsBar">
-          <button class="date-tab active" data-date="12.08.2026">12.08.2026</button>
-          <button class="date-tab" data-date="13.08.2026">13.08.2026</button>
-          <button class="date-tab" data-date="14.08.2026">14.08.2026</button>
-          <button class="date-tab" data-date="15.08.2026">15.08.2026</button>
-          <button class="date-tab" data-date="16.08.2026">16.08.2026</button>
-          <button class="date-tab" data-date="17.08.2026">17.08.2026</button>
-          <button class="date-tab" data-date="18.08.2026">18.08.2026</button>
-        </div>
-      </section>
-
       <!-- Stats Summary Card -->
       <section class="stats-card">
         <div class="cutoff-stats-grid">
           <div class="stat-box">
-            <span class="stat-label">TOTAL SHGs DISPLAYED</span>
+            <span class="stat-label">TOTAL SHGs</span>
             <span class="stat-num" id="statCutoffTotal">0</span>
           </div>
           <div class="stat-box">
-            <span class="stat-label">12.08 COMPLETED</span>
+            <span class="stat-label">12.08 DONE</span>
             <span class="stat-num stat-green" id="statCutoff12">0</span>
           </div>
           <div class="stat-box">
-            <span class="stat-label">13.08 COMPLETED</span>
+            <span class="stat-label">13.08 DONE</span>
             <span class="stat-num stat-green" id="statCutoff13">0</span>
           </div>
           <div class="stat-box">
-            <span class="stat-label">14.08 COMPLETED</span>
+            <span class="stat-label">14.08 DONE</span>
             <span class="stat-num stat-green" id="statCutoff14">0</span>
           </div>
           <div class="stat-box">
-            <span class="stat-label">15.08 COMPLETED</span>
+            <span class="stat-label">15.08 DONE</span>
             <span class="stat-num stat-green" id="statCutoff15">0</span>
           </div>
           <div class="stat-box">
-            <span class="stat-label">16.08 COMPLETED</span>
+            <span class="stat-label">16.08 DONE</span>
             <span class="stat-num stat-green" id="statCutoff16">0</span>
           </div>
           <div class="stat-box">
-            <span class="stat-label">17.08 COMPLETED</span>
+            <span class="stat-label">17.08 DONE</span>
             <span class="stat-num stat-green" id="statCutoff17">0</span>
           </div>
           <div class="stat-box">
-            <span class="stat-label">18.08 COMPLETED</span>
+            <span class="stat-label">18.08 DONE</span>
             <span class="stat-num stat-green" id="statCutoff18">0</span>
           </div>
         </div>
       </section>
 
-      <!-- Save & Action Bar -->
-      <div class="cutoff-action-bar">
-        <div class="bulk-actions">
-          <button id="markAllYesBtn" class="btn btn-sm btn-outline" title="Mark Yes for all SHGs displayed under selected date">
-            ✓ Mark All Yes
-          </button>
-          <button id="markAllNoBtn" class="btn btn-sm btn-outline" title="Mark No for all SHGs displayed under selected date">
-            ✕ Mark All No
-          </button>
-        </div>
-        <div class="save-group">
-          <span id="cutoffUnsavedNotice" class="unsaved-badge" style="display:none;">⚠️ Unsaved Changes</span>
-          <button id="saveCutoffBtn" class="btn btn-primary btn-lg">
-            💾 Save Cutoff Responses
-          </button>
-        </div>
-      </div>
-
-      <!-- Cutoff Table Container -->
+      <!-- Cutoff SHG Table Container -->
       <section class="members-table-card">
         <div class="table-responsive">
           <table class="members-table cutoff-table">
@@ -338,20 +304,168 @@
                 <th style="width: 50px;">Sl</th>
                 <th>Gram Panchayat</th>
                 <th>Village</th>
-                <th>SHG Code & Name</th>
-                <th class="text-center" style="min-width: 220px;" id="cutoffDateColumnHeader">
-                  Cutoff Status (<span id="selectedDateLabelHeader">12.08.2026</span>)
-                </th>
+                <th>SHG Name & Code</th>
+                <th class="text-center">Cutoff Status (Dates Marked)</th>
+                <th class="text-center" style="width: 130px;">Action</th>
               </tr>
             </thead>
             <tbody id="cutoffTableBody">
               <tr>
-                <td colspan="5" class="placeholder-row">
+                <td colspan="6" class="placeholder-row">
                   Loading SHG Cutoff data...
                 </td>
               </tr>
             </tbody>
           </table>
+        </div>
+      </section>
+    </div>
+
+    <!-- PAGE 4: Dedicated SHG Cutoff Detail & Date-Wise Status View -->
+    <div id="shgCutoffDetailView" class="app-view" style="display:none;">
+      <div class="page-nav-bar">
+        <button id="cutoffBackToListBtn" class="btn btn-outline">
+          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+            <line x1="19" y1="12" x2="5" y2="12"></line>
+            <polyline points="12 19 5 12 12 5"></polyline>
+          </svg>
+          ← Back to SHG List
+        </button>
+
+        <div class="member-nav-buttons">
+          <button id="cutoffPrevShgBtn" class="btn btn-sm btn-outline">« Prev SHG</button>
+          <span id="cutoffShgIndexDisplay" class="member-index-tag">1 of 10</span>
+          <button id="cutoffNextShgBtn" class="btn btn-sm btn-outline">Next SHG »</button>
+        </div>
+      </div>
+
+      <!-- SHG Profile Header Card -->
+      <section class="detail-card profile-card">
+        <div class="profile-header">
+          <div class="profile-tag-row">
+            <span class="status-badge badge-neutral" id="detCutoffProgressBadge">0 of 7 Dates Marked</span>
+            <span class="tag-pill" id="detCutoffGpTag">GP</span>
+            <span class="tag-pill" id="detCutoffVillageTag">Village</span>
+          </div>
+          <h2 class="det-member-name" id="detCutoffShgName">SHG Name</h2>
+          <div class="det-member-code code-font" id="detCutoffShgCode">SHG Code: 04003114673</div>
+        </div>
+      </section>
+
+      <!-- Date-Wise Status Cards Section -->
+      <section class="detail-card form-card">
+        <h3 class="form-section-title">
+          📋 Record Date-Wise Cutoff Completion
+        </h3>
+        <p class="form-section-subtitle">Tap <strong>Yes</strong> or <strong>No</strong> for each cutoff date below:</p>
+
+        <!-- In-card Success Alert Banner -->
+        <div id="cutoffFormSuccessAlert" class="form-success-alert" style="display:none;">
+          <span class="alert-icon">✓</span>
+          <span>Cutoff status saved successfully!</span>
+        </div>
+
+        <!-- Date-Wise Cards Container -->
+        <div class="date-wise-grid">
+          <!-- Date 12.08.2026 -->
+          <div class="date-entry-card" id="cardDate_12.08.2026">
+            <div class="date-card-header">
+              <span class="date-card-title">📅 12.08.2026</span>
+              <span class="date-card-subtitle">Cutoff Completion</span>
+            </div>
+            <div class="toggle-segment-large">
+              <button class="toggle-btn-lg btn-yes" data-dt="12.08.2026" data-val="Yes" onclick="handleDetailCutoffToggle(this)">Yes</button>
+              <button class="toggle-btn-lg btn-no" data-dt="12.08.2026" data-val="No" onclick="handleDetailCutoffToggle(this)">No</button>
+            </div>
+          </div>
+
+          <!-- Date 13.08.2026 -->
+          <div class="date-entry-card" id="cardDate_13.08.2026">
+            <div class="date-card-header">
+              <span class="date-card-title">📅 13.08.2026</span>
+              <span class="date-card-subtitle">Cutoff Completion</span>
+            </div>
+            <div class="toggle-segment-large">
+              <button class="toggle-btn-lg btn-yes" data-dt="13.08.2026" data-val="Yes" onclick="handleDetailCutoffToggle(this)">Yes</button>
+              <button class="toggle-btn-lg btn-no" data-dt="13.08.2026" data-val="No" onclick="handleDetailCutoffToggle(this)">No</button>
+            </div>
+          </div>
+
+          <!-- Date 14.08.2026 -->
+          <div class="date-entry-card" id="cardDate_14.08.2026">
+            <div class="date-card-header">
+              <span class="date-card-title">📅 14.08.2026</span>
+              <span class="date-card-subtitle">Cutoff Completion</span>
+            </div>
+            <div class="toggle-segment-large">
+              <button class="toggle-btn-lg btn-yes" data-dt="14.08.2026" data-val="Yes" onclick="handleDetailCutoffToggle(this)">Yes</button>
+              <button class="toggle-btn-lg btn-no" data-dt="14.08.2026" data-val="No" onclick="handleDetailCutoffToggle(this)">No</button>
+            </div>
+          </div>
+
+          <!-- Date 15.08.2026 -->
+          <div class="date-entry-card" id="cardDate_15.08.2026">
+            <div class="date-card-header">
+              <span class="date-card-title">📅 15.08.2026</span>
+              <span class="date-card-subtitle">Cutoff Completion</span>
+            </div>
+            <div class="toggle-segment-large">
+              <button class="toggle-btn-lg btn-yes" data-dt="15.08.2026" data-val="Yes" onclick="handleDetailCutoffToggle(this)">Yes</button>
+              <button class="toggle-btn-lg btn-no" data-dt="15.08.2026" data-val="No" onclick="handleDetailCutoffToggle(this)">No</button>
+            </div>
+          </div>
+
+          <!-- Date 16.08.2026 -->
+          <div class="date-entry-card" id="cardDate_16.08.2026">
+            <div class="date-card-header">
+              <span class="date-card-title">📅 16.08.2026</span>
+              <span class="date-card-subtitle">Cutoff Completion</span>
+            </div>
+            <div class="toggle-segment-large">
+              <button class="toggle-btn-lg btn-yes" data-dt="16.08.2026" data-val="Yes" onclick="handleDetailCutoffToggle(this)">Yes</button>
+              <button class="toggle-btn-lg btn-no" data-dt="16.08.2026" data-val="No" onclick="handleDetailCutoffToggle(this)">No</button>
+            </div>
+          </div>
+
+          <!-- Date 17.08.2026 -->
+          <div class="date-entry-card" id="cardDate_17.08.2026">
+            <div class="date-card-header">
+              <span class="date-card-title">📅 17.08.2026</span>
+              <span class="date-card-subtitle">Cutoff Completion</span>
+            </div>
+            <div class="toggle-segment-large">
+              <button class="toggle-btn-lg btn-yes" data-dt="17.08.2026" data-val="Yes" onclick="handleDetailCutoffToggle(this)">Yes</button>
+              <button class="toggle-btn-lg btn-no" data-dt="17.08.2026" data-val="No" onclick="handleDetailCutoffToggle(this)">No</button>
+            </div>
+          </div>
+
+          <!-- Date 18.08.2026 -->
+          <div class="date-entry-card" id="cardDate_18.08.2026">
+            <div class="date-card-header">
+              <span class="date-card-title">📅 18.08.2026</span>
+              <span class="date-card-subtitle">Cutoff Completion</span>
+            </div>
+            <div class="toggle-segment-large">
+              <button class="toggle-btn-lg btn-yes" data-dt="18.08.2026" data-val="Yes" onclick="handleDetailCutoffToggle(this)">Yes</button>
+              <button class="toggle-btn-lg btn-no" data-dt="18.08.2026" data-val="No" onclick="handleDetailCutoffToggle(this)">No</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-action-row" style="margin-top: 1.5rem;">
+          <button id="saveCutoffDetailBtn" class="btn btn-primary btn-lg">
+            ✓ Save & Next SHG
+          </button>
+          <button id="saveCutoffDetailOnlyBtn" class="btn btn-outline btn-lg">
+            Save
+          </button>
+          <button id="clearCutoffDetailBtn" class="btn btn-outline">
+            Clear All
+          </button>
+        </div>
+
+        <div id="cutoffSavedTimestampNotice" class="saved-notice" style="display:none; margin-top: 1rem;">
+          Last saved: <span id="cutoffSavedTimestampText"></span>
         </div>
       </section>
     </div>

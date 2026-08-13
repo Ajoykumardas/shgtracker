@@ -39,9 +39,9 @@ const state = {
   savedCutoff: {},      // { [shgCode]: { [date]: "Yes" | "No" } }
   selectedCutoffGp: '',
   selectedCutoffVillage: '',
-  selectedCutoffDate: '12.08.2026',
   cutoffSearchQuery: '',
-  cutoffHasUnsaved: false
+  cutoffCurrentList: [],
+  activeCutoffIndex: -1
 };
 
 // DOM Elements Cache
@@ -53,7 +53,8 @@ const el = {
   // Views
   memberListView: document.getElementById('memberListView'),
   memberReasonView: document.getElementById('memberReasonView'),
-  shgCutoffView: document.getElementById('shgCutoffView'),
+  shgCutoffListView: document.getElementById('shgCutoffListView'),
+  shgCutoffDetailView: document.getElementById('shgCutoffDetailView'),
 
   // Export buttons
   exportAllCsvBtn: document.getElementById('exportAllCsvBtn'),
@@ -72,7 +73,7 @@ const el = {
   memberSearchInput: document.getElementById('memberSearchInput'),
   membersTableBody: document.getElementById('membersTableBody'),
 
-  // Page 2 Navigation & Details
+  // Page 2 Member Navigation & Details
   backToListBtn: document.getElementById('backToListBtn'),
   prevMemberBtn: document.getElementById('prevMemberBtn'),
   nextMemberBtn: document.getElementById('nextMemberBtn'),
@@ -87,7 +88,7 @@ const el = {
   detPhoneVal: document.getElementById('detPhoneVal'),
   detEbkVal: document.getElementById('detEbkVal'),
 
-  // Reason Form & Verified Notice
+  // Member Reason Form & Verified Notice
   verifiedMemberNotice: document.getElementById('verifiedMemberNotice'),
   reasonFormCard: document.getElementById('reasonFormCard'),
   formSuccessAlert: document.getElementById('formSuccessAlert'),
@@ -108,9 +109,6 @@ const el = {
   selectCutoffGp: document.getElementById('selectCutoffGp'),
   selectCutoffVillage: document.getElementById('selectCutoffVillage'),
   cutoffSearchInput: document.getElementById('cutoffSearchInput'),
-  dateTabsBar: document.getElementById('dateTabsBar'),
-  cutoffDateColumnHeader: document.getElementById('cutoffDateColumnHeader'),
-  selectedDateLabelHeader: document.getElementById('selectedDateLabelHeader'),
   statCutoffTotal: document.getElementById('statCutoffTotal'),
   statCutoff12: document.getElementById('statCutoff12'),
   statCutoff13: document.getElementById('statCutoff13'),
@@ -119,11 +117,24 @@ const el = {
   statCutoff16: document.getElementById('statCutoff16'),
   statCutoff17: document.getElementById('statCutoff17'),
   statCutoff18: document.getElementById('statCutoff18'),
-  cutoffUnsavedNotice: document.getElementById('cutoffUnsavedNotice'),
-  markAllYesBtn: document.getElementById('markAllYesBtn'),
-  markAllNoBtn: document.getElementById('markAllNoBtn'),
-  saveCutoffBtn: document.getElementById('saveCutoffBtn'),
-  cutoffTableBody: document.getElementById('cutoffTableBody')
+  cutoffTableBody: document.getElementById('cutoffTableBody'),
+
+  // Cutoff Detail Elements
+  cutoffBackToListBtn: document.getElementById('cutoffBackToListBtn'),
+  cutoffPrevShgBtn: document.getElementById('cutoffPrevShgBtn'),
+  cutoffNextShgBtn: document.getElementById('cutoffNextShgBtn'),
+  cutoffShgIndexDisplay: document.getElementById('cutoffShgIndexDisplay'),
+  detCutoffProgressBadge: document.getElementById('detCutoffProgressBadge'),
+  detCutoffGpTag: document.getElementById('detCutoffGpTag'),
+  detCutoffVillageTag: document.getElementById('detCutoffVillageTag'),
+  detCutoffShgName: document.getElementById('detCutoffShgName'),
+  detCutoffShgCode: document.getElementById('detCutoffShgCode'),
+  cutoffFormSuccessAlert: document.getElementById('cutoffFormSuccessAlert'),
+  saveCutoffDetailBtn: document.getElementById('saveCutoffDetailBtn'),
+  saveCutoffDetailOnlyBtn: document.getElementById('saveCutoffDetailOnlyBtn'),
+  clearCutoffDetailBtn: document.getElementById('clearCutoffDetailBtn'),
+  cutoffSavedTimestampNotice: document.getElementById('cutoffSavedTimestampNotice'),
+  cutoffSavedTimestampText: document.getElementById('cutoffSavedTimestampText')
 };
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -204,7 +215,8 @@ function switchTab(tabName) {
     if (el.navTabCutoff) el.navTabCutoff.classList.remove('active');
     if (el.memberListView) el.memberListView.style.display = 'block';
     if (el.memberReasonView) el.memberReasonView.style.display = 'none';
-    if (el.shgCutoffView) el.shgCutoffView.style.display = 'none';
+    if (el.shgCutoffListView) el.shgCutoffListView.style.display = 'none';
+    if (el.shgCutoffDetailView) el.shgCutoffDetailView.style.display = 'none';
     if (el.exportAllCsvBtn) el.exportAllCsvBtn.style.display = 'inline-flex';
     if (el.exportCutoffCsvBtn) el.exportCutoffCsvBtn.style.display = 'none';
   } else if (tabName === 'cutoff') {
@@ -212,7 +224,8 @@ function switchTab(tabName) {
     if (el.navTabCutoff) el.navTabCutoff.classList.add('active');
     if (el.memberListView) el.memberListView.style.display = 'none';
     if (el.memberReasonView) el.memberReasonView.style.display = 'none';
-    if (el.shgCutoffView) el.shgCutoffView.style.display = 'block';
+    if (el.shgCutoffListView) el.shgCutoffListView.style.display = 'block';
+    if (el.shgCutoffDetailView) el.shgCutoffDetailView.style.display = 'none';
     if (el.exportAllCsvBtn) el.exportAllCsvBtn.style.display = 'none';
     if (el.exportCutoffCsvBtn) el.exportCutoffCsvBtn.style.display = 'inline-flex';
     renderCutoffTable();
@@ -325,35 +338,15 @@ function bindEvents() {
     });
   }
 
-  // Date Tabs selection
-  if (el.dateTabsBar) {
-    el.dateTabsBar.addEventListener('click', (e) => {
-      const btn = e.target.closest('.date-tab');
-      if (!btn) return;
-      const targetDate = btn.getAttribute('data-date');
-      if (targetDate && state.selectedCutoffDate !== targetDate) {
-        state.selectedCutoffDate = targetDate;
-        el.dateTabsBar.querySelectorAll('.date-tab').forEach(tb => {
-          tb.classList.toggle('active', tb.getAttribute('data-date') === targetDate);
-        });
-        if (el.selectedDateLabelHeader) el.selectedDateLabelHeader.textContent = targetDate;
-        renderCutoffTable();
-      }
-    });
-  }
+  // Cutoff Detail Navigation
+  if (el.cutoffBackToListBtn) el.cutoffBackToListBtn.addEventListener('click', showCutoffListView);
+  if (el.cutoffPrevShgBtn) el.cutoffPrevShgBtn.addEventListener('click', showPrevCutoffShg);
+  if (el.cutoffNextShgBtn) el.cutoffNextShgBtn.addEventListener('click', showNextCutoffShg);
 
-  // Bulk Actions
-  if (el.markAllYesBtn) {
-    el.markAllYesBtn.addEventListener('click', () => bulkMarkCutoff('Yes'));
-  }
-
-  if (el.markAllNoBtn) {
-    el.markAllNoBtn.addEventListener('click', () => bulkMarkCutoff('No'));
-  }
-
-  if (el.saveCutoffBtn) {
-    el.saveCutoffBtn.addEventListener('click', saveCutoffResponses);
-  }
+  // Cutoff Detail Save & Clear
+  if (el.saveCutoffDetailBtn) el.saveCutoffDetailBtn.addEventListener('click', () => saveCutoffDetail(true));
+  if (el.saveCutoffDetailOnlyBtn) el.saveCutoffDetailOnlyBtn.addEventListener('click', () => saveCutoffDetail(false));
+  if (el.clearCutoffDetailBtn) el.clearCutoffDetailBtn.addEventListener('click', clearCutoffDetail);
 }
 
 function hideFormAlerts() {
@@ -547,14 +540,16 @@ function openMemberDetail(index) {
   renderMemberDetail();
   
   el.memberListView.style.display = 'none';
-  el.shgCutoffView.style.display = 'none';
+  if (el.shgCutoffListView) el.shgCutoffListView.style.display = 'none';
+  if (el.shgCutoffDetailView) el.shgCutoffDetailView.style.display = 'none';
   el.memberReasonView.style.display = 'block';
   window.scrollTo(0, 0);
 }
 
 function showMemberListView() {
   el.memberReasonView.style.display = 'none';
-  el.shgCutoffView.style.display = 'none';
+  if (el.shgCutoffListView) el.shgCutoffListView.style.display = 'none';
+  if (el.shgCutoffDetailView) el.shgCutoffDetailView.style.display = 'none';
   el.memberListView.style.display = 'block';
   renderMembersTable();
 }
@@ -763,22 +758,18 @@ function getFilteredCutoffList() {
     );
   }
 
+  state.cutoffCurrentList = filtered;
   return filtered;
 }
 
 function renderCutoffTable() {
   if (!el.cutoffTableBody) return;
   if (!state.cutoffList || state.cutoffList.length === 0) {
-    el.cutoffTableBody.innerHTML = '<tr><td colspan="5" class="placeholder-row">Loading SHG Cutoff data...</td></tr>';
+    el.cutoffTableBody.innerHTML = '<tr><td colspan="6" class="placeholder-row">Loading SHG Cutoff data...</td></tr>';
     return;
   }
 
   const filtered = getFilteredCutoffList();
-
-  // Update Header Date Label
-  if (el.selectedDateLabelHeader) {
-    el.selectedDateLabelHeader.textContent = state.selectedCutoffDate;
-  }
 
   // Update Stats
   if (el.statCutoffTotal) el.statCutoffTotal.textContent = filtered.length.toLocaleString();
@@ -802,11 +793,11 @@ function renderCutoffTable() {
   if (el.statCutoff18) el.statCutoff18.textContent = dateCounts['18.08.2026'];
 
   if (filtered.length === 0) {
-    el.cutoffTableBody.innerHTML = '<tr><td colspan="5" class="placeholder-row">No SHGs match the selected filters.</td></tr>';
+    el.cutoffTableBody.innerHTML = '<tr><td colspan="6" class="placeholder-row">No SHGs match the selected filters.</td></tr>';
     return;
   }
 
-  // Optimize rendering for large lists
+  // Display items
   const displayItems = (filtered.length > 300 && !state.selectedCutoffGp && !state.cutoffSearchQuery)
     ? filtered.slice(0, 300)
     : filtered;
@@ -814,11 +805,23 @@ function renderCutoffTable() {
   let html = '';
   displayItems.forEach((item, index) => {
     const resp = state.savedCutoff[item.shgCode] || {};
-    const val = resp[state.selectedCutoffDate];
-    const yesSel = val === 'Yes' ? 'selected' : '';
-    const noSel = val === 'No' ? 'selected' : '';
     
-    html += `<tr>
+    // Calculate how many dates are marked (Yes or No)
+    let markedCount = 0;
+    CUTOFF_DATES.forEach(d => {
+      if (resp[d]) markedCount++;
+    });
+
+    let statusBadgeHtml = '';
+    if (markedCount === 7) {
+      statusBadgeHtml = '<span class="status-badge badge-success">✓ 7/7 Dates Complete</span>';
+    } else if (markedCount > 0) {
+      statusBadgeHtml = `<span class="status-badge badge-warning">${markedCount}/7 Dates Marked</span>`;
+    } else {
+      statusBadgeHtml = '<span class="status-badge badge-neutral">0/7 Dates Pending</span>';
+    }
+
+    html += `<tr onclick="openCutoffDetail(${index})" class="clickable-row">
       <td class="text-muted" style="font-size:0.8rem;">${item.sl || (index + 1)}</td>
       <td><strong>${escapeHtml(item.gp)}</strong></td>
       <td><span>${escapeHtml(item.village)}</span></td>
@@ -828,17 +831,17 @@ function renderCutoffTable() {
           <span class="shg-code-text">${escapeHtml(item.shgCode)}</span>
         </div>
       </td>
+      <td class="text-center">${statusBadgeHtml}</td>
       <td class="text-center">
-        <div class="toggle-segment-large">
-          <button class="toggle-btn-lg btn-yes ${yesSel}" data-sc="${item.shgCode}" data-dt="${state.selectedCutoffDate}" data-val="Yes" onclick="handleCutoffToggle(this)">Yes</button>
-          <button class="toggle-btn-lg btn-no ${noSel}" data-sc="${item.shgCode}" data-dt="${state.selectedCutoffDate}" data-val="No" onclick="handleCutoffToggle(this)">No</button>
-        </div>
+        <button class="btn btn-sm btn-primary">
+          Record Cutoff ➔
+        </button>
       </td>
     </tr>`;
   });
 
   if (filtered.length > displayItems.length) {
-    html += `<tr><td colspan="5" class="placeholder-row" style="padding:1rem; font-weight:600; color:var(--primary);">
+    html += `<tr><td colspan="6" class="placeholder-row" style="padding:1rem; font-weight:600; color:var(--primary);">
       Showing first ${displayItems.length} of ${filtered.length} SHGs. Select a Gram Panchayat or Village to narrow down.
     </td></tr>`;
   }
@@ -846,109 +849,197 @@ function renderCutoffTable() {
   el.cutoffTableBody.innerHTML = html;
 }
 
-window.handleCutoffToggle = function(btn) {
-  const shgCode = btn.getAttribute('data-sc');
+function openCutoffDetail(index) {
+  if (index < 0 || index >= state.cutoffCurrentList.length) return;
+  state.activeCutoffIndex = index;
+  renderCutoffDetail();
+
+  if (el.shgCutoffListView) el.shgCutoffListView.style.display = 'none';
+  if (el.memberListView) el.memberListView.style.display = 'none';
+  if (el.memberReasonView) el.memberReasonView.style.display = 'none';
+  if (el.shgCutoffDetailView) el.shgCutoffDetailView.style.display = 'block';
+  window.scrollTo(0, 0);
+}
+
+function showCutoffListView() {
+  if (el.shgCutoffDetailView) el.shgCutoffDetailView.style.display = 'none';
+  if (el.memberReasonView) el.memberReasonView.style.display = 'none';
+  if (el.memberListView) el.memberListView.style.display = 'none';
+  if (el.shgCutoffListView) el.shgCutoffListView.style.display = 'block';
+  renderCutoffTable();
+}
+
+function renderCutoffDetail() {
+  const shg = state.cutoffCurrentList[state.activeCutoffIndex];
+  if (!shg) return;
+
+  if (el.cutoffFormSuccessAlert) el.cutoffFormSuccessAlert.style.display = 'none';
+
+  if (el.cutoffShgIndexDisplay) {
+    el.cutoffShgIndexDisplay.textContent = `${state.activeCutoffIndex + 1} of ${state.cutoffCurrentList.length}`;
+  }
+  if (el.cutoffPrevShgBtn) el.cutoffPrevShgBtn.disabled = (state.activeCutoffIndex <= 0);
+  if (el.cutoffNextShgBtn) el.cutoffNextShgBtn.disabled = (state.activeCutoffIndex >= state.cutoffCurrentList.length - 1);
+
+  if (el.detCutoffShgName) el.detCutoffShgName.textContent = shg.shgName;
+  if (el.detCutoffShgCode) el.detCutoffShgCode.textContent = `SHG Code: ${shg.shgCode}`;
+  if (el.detCutoffGpTag) el.detCutoffGpTag.textContent = `GP: ${shg.gp}`;
+  if (el.detCutoffVillageTag) el.detCutoffVillageTag.textContent = `Village: ${shg.village}`;
+
+  const resp = state.savedCutoff[shg.shgCode] || {};
+
+  let markedCount = 0;
+  CUTOFF_DATES.forEach(date => {
+    if (resp[date]) markedCount++;
+  });
+
+  if (el.detCutoffProgressBadge) {
+    if (markedCount === 7) {
+      el.detCutoffProgressBadge.textContent = '✓ 7 of 7 Dates Completed';
+      el.detCutoffProgressBadge.className = 'status-badge badge-success';
+    } else if (markedCount > 0) {
+      el.detCutoffProgressBadge.textContent = `${markedCount} of 7 Dates Marked`;
+      el.detCutoffProgressBadge.className = 'status-badge badge-warning';
+    } else {
+      el.detCutoffProgressBadge.textContent = '0 of 7 Dates Marked';
+      el.detCutoffProgressBadge.className = 'status-badge badge-neutral';
+    }
+  }
+
+  // Populate visual toggle pills for each date
+  CUTOFF_DATES.forEach(date => {
+    const card = document.getElementById(`cardDate_${date}`);
+    if (card) {
+      const val = resp[date];
+      const yesBtn = card.querySelector('.btn-yes');
+      const noBtn = card.querySelector('.btn-no');
+      if (yesBtn) yesBtn.classList.toggle('selected', val === 'Yes');
+      if (noBtn) noBtn.classList.toggle('selected', val === 'No');
+    }
+  });
+
+  if (resp.updatedAt) {
+    if (el.cutoffSavedTimestampText) el.cutoffSavedTimestampText.textContent = new Date(resp.updatedAt).toLocaleString();
+    if (el.cutoffSavedTimestampNotice) el.cutoffSavedTimestampNotice.style.display = 'block';
+  } else {
+    if (el.cutoffSavedTimestampNotice) el.cutoffSavedTimestampNotice.style.display = 'none';
+  }
+}
+
+window.handleDetailCutoffToggle = function(btn) {
+  const shg = state.cutoffCurrentList[state.activeCutoffIndex];
+  if (!shg) return;
+
   const date = btn.getAttribute('data-dt');
   const targetVal = btn.getAttribute('data-val');
 
-  if (!state.savedCutoff[shgCode]) {
-    state.savedCutoff[shgCode] = {};
+  if (!state.savedCutoff[shg.shgCode]) {
+    state.savedCutoff[shg.shgCode] = {};
   }
 
-  const currentVal = state.savedCutoff[shgCode][date];
+  const currentVal = state.savedCutoff[shg.shgCode][date];
   if (currentVal === targetVal) {
-    delete state.savedCutoff[shgCode][date];
+    delete state.savedCutoff[shg.shgCode][date];
   } else {
-    state.savedCutoff[shgCode][date] = targetVal;
+    state.savedCutoff[shg.shgCode][date] = targetVal;
   }
-  state.savedCutoff[shgCode].updatedAt = new Date().toISOString();
+  state.savedCutoff[shg.shgCode].updatedAt = new Date().toISOString();
 
   // Save to local storage
   localStorage.setItem('shg_cutoff_responses', JSON.stringify(state.savedCutoff));
 
-  state.cutoffHasUnsaved = true;
-  if (el.cutoffUnsavedNotice) el.cutoffUnsavedNotice.style.display = 'inline-block';
+  // Update visual button state immediately
+  const card = document.getElementById(`cardDate_${date}`);
+  if (card) {
+    const yesBtn = card.querySelector('.btn-yes');
+    const noBtn = card.querySelector('.btn-no');
+    const newVal = state.savedCutoff[shg.shgCode][date];
+    if (yesBtn) yesBtn.classList.toggle('selected', newVal === 'Yes');
+    if (noBtn) noBtn.classList.toggle('selected', newVal === 'No');
+  }
 
-  // Toggle visual states immediately
-  const parent = btn.parentElement;
-  const yesBtn = parent.querySelector('.btn-yes');
-  const noBtn = parent.querySelector('.btn-no');
+  // Update progress badge
+  const resp = state.savedCutoff[shg.shgCode] || {};
+  let markedCount = 0;
+  CUTOFF_DATES.forEach(d => { if (resp[d]) markedCount++; });
 
-  const newVal = state.savedCutoff[shgCode][date];
-  yesBtn.classList.toggle('selected', newVal === 'Yes');
-  noBtn.classList.toggle('selected', newVal === 'No');
-
-  // Update top stats
-  updateCutoffStatsOnly();
+  if (el.detCutoffProgressBadge) {
+    if (markedCount === 7) {
+      el.detCutoffProgressBadge.textContent = '✓ 7 of 7 Dates Completed';
+      el.detCutoffProgressBadge.className = 'status-badge badge-success';
+    } else if (markedCount > 0) {
+      el.detCutoffProgressBadge.textContent = `${markedCount} of 7 Dates Marked`;
+      el.detCutoffProgressBadge.className = 'status-badge badge-warning';
+    } else {
+      el.detCutoffProgressBadge.textContent = '0 of 7 Dates Marked';
+      el.detCutoffProgressBadge.className = 'status-badge badge-neutral';
+    }
+  }
 };
 
-function bulkMarkCutoff(val) {
-  const filtered = getFilteredCutoffList();
-  if (filtered.length === 0) return;
-
-  const curDate = state.selectedCutoffDate;
-  const now = new Date().toISOString();
-
-  filtered.forEach(item => {
-    if (!state.savedCutoff[item.shgCode]) {
-      state.savedCutoff[item.shgCode] = {};
-    }
-    state.savedCutoff[item.shgCode][curDate] = val;
-    state.savedCutoff[item.shgCode].updatedAt = now;
-  });
-
-  localStorage.setItem('shg_cutoff_responses', JSON.stringify(state.savedCutoff));
-
-  state.cutoffHasUnsaved = true;
-  if (el.cutoffUnsavedNotice) el.cutoffUnsavedNotice.style.display = 'inline-block';
-
-  renderCutoffTable();
-  showToast(`✓ Marked ${val} for ${filtered.length} SHGs on ${curDate}`);
+function showPrevCutoffShg() {
+  if (state.activeCutoffIndex > 0) {
+    state.activeCutoffIndex--;
+    renderCutoffDetail();
+    window.scrollTo(0, 0);
+  }
 }
 
-function updateCutoffStatsOnly() {
-  if (!state.cutoffList) return;
-
-  const filtered = getFilteredCutoffList();
-  if (el.statCutoffTotal) el.statCutoffTotal.textContent = filtered.length.toLocaleString();
-
-  const dateCounts = {};
-  CUTOFF_DATES.forEach(d => dateCounts[d] = 0);
-
-  filtered.forEach(item => {
-    const resp = state.savedCutoff[item.shgCode] || {};
-    CUTOFF_DATES.forEach(d => {
-      if (resp[d] === 'Yes') dateCounts[d]++;
-    });
-  });
-
-  if (el.statCutoff12) el.statCutoff12.textContent = dateCounts['12.08.2026'];
-  if (el.statCutoff13) el.statCutoff13.textContent = dateCounts['13.08.2026'];
-  if (el.statCutoff14) el.statCutoff14.textContent = dateCounts['14.08.2026'];
-  if (el.statCutoff15) el.statCutoff15.textContent = dateCounts['15.08.2026'];
-  if (el.statCutoff16) el.statCutoff16.textContent = dateCounts['16.08.2026'];
-  if (el.statCutoff17) el.statCutoff17.textContent = dateCounts['17.08.2026'];
-  if (el.statCutoff18) el.statCutoff18.textContent = dateCounts['18.08.2026'];
+function showNextCutoffShg() {
+  if (state.activeCutoffIndex < state.cutoffCurrentList.length - 1) {
+    state.activeCutoffIndex++;
+    renderCutoffDetail();
+    window.scrollTo(0, 0);
+  }
 }
 
-async function saveCutoffResponses() {
+async function saveCutoffDetail(autoAdvance = true) {
+  const shg = state.cutoffCurrentList[state.activeCutoffIndex];
+  if (!shg) return;
+
+  const payload = {
+    [shg.shgCode]: state.savedCutoff[shg.shgCode] || {}
+  };
+
   try {
-    const res = await fetch('/api/cutoff', {
+    await fetch('/api/cutoff', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(state.savedCutoff)
+      body: JSON.stringify(payload)
     });
-
-    if (res.ok) {
-      state.cutoffHasUnsaved = false;
-      if (el.cutoffUnsavedNotice) el.cutoffUnsavedNotice.style.display = 'none';
-      showToast('✓ Cutoff responses saved successfully!');
-    } else {
-      showToast('⚠️ Saved locally, server sync failed');
-    }
   } catch (err) {
-    showToast('⚠️ Saved locally (Offline)');
+    console.warn('Cutoff server sync warning:', err);
   }
+
+  if (el.cutoffFormSuccessAlert) el.cutoffFormSuccessAlert.style.display = 'flex';
+  showToast(`✓ Saved Cutoff for ${shg.shgName}`);
+
+  setTimeout(() => {
+    if (el.cutoffFormSuccessAlert) el.cutoffFormSuccessAlert.style.display = 'none';
+    if (autoAdvance && state.activeCutoffIndex < state.cutoffCurrentList.length - 1) {
+      showNextCutoffShg();
+    } else {
+      renderCutoffDetail();
+    }
+  }, 700);
+}
+
+function clearCutoffDetail() {
+  const shg = state.cutoffCurrentList[state.activeCutoffIndex];
+  if (!shg) return;
+
+  delete state.savedCutoff[shg.shgCode];
+  localStorage.setItem('shg_cutoff_responses', JSON.stringify(state.savedCutoff));
+
+  const payload = { [shg.shgCode]: {} };
+  fetch('/api/cutoff', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  }).catch(err => console.warn('Cutoff server sync warning:', err));
+
+  renderCutoffDetail();
+  showToast('Cleared cutoff dates for SHG');
 }
 
 function exportCutoffCsv() {
