@@ -1283,3 +1283,49 @@ body {
     white-space: normal;
   }
 }
+
+/* Table Cell Name & Code Separator Styles */
+.member-name-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  align-items: flex-start;
+}
+
+.m-name {
+  font-weight: 700;
+  color: var(--text-main);
+  font-size: 0.9rem;
+  line-height: 1.25;
+}
+
+.m-code {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #475569;
+  font-family: var(--font-mono);
+  background-color: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  padding: 0.1rem 0.45rem;
+  border-radius: 4px;
+  letter-spacing: 0.02em;
+}
+
+.member-shg-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.m-shg {
+  font-weight: 600;
+  color: var(--text-main);
+  font-size: 0.85rem;
+}
+
+.m-village {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
