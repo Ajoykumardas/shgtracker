@@ -835,18 +835,17 @@ function renderCutoffTable() {
     }
 
     html += `<tr onclick="openCutoffDetail(${index})" class="clickable-row">
-      <td data-label="Sl" class="text-muted" style="font-size:0.8rem;">${item.sl || (index + 1)}</td>
-      <td data-label="GP"><strong>${escapeHtml(item.gp)}</strong></td>
-      <td data-label="Village"><span>${escapeHtml(item.village)}</span></td>
-      <td data-label="SHG">
-        <div class="shg-info-cell">
-          <span class="shg-name-text">${escapeHtml(item.shgName)}</span>
-          <span class="shg-code-text">${escapeHtml(item.shgCode)}</span>
+      <td data-label="Sl. No." class="text-muted" style="font-size:0.85rem; font-weight:600;">${item.sl || (index + 1)}</td>
+      <td data-label="SHG Profile">
+        <div style="display: flex; flex-direction: column; gap: 0.2rem;">
+          <span style="font-weight: 700; color: var(--text-main); font-size: 0.95rem;">${escapeHtml(item.shgName)}</span>
+          <span style="color: var(--text-muted); font-size: 0.8rem; font-family: monospace;">Code: ${escapeHtml(item.shgCode)}</span>
+          <span style="color: var(--text-muted); font-size: 0.75rem;">GP: <strong>${escapeHtml(item.gp)}</strong> &bull; Village: <strong>${escapeHtml(item.village)}</strong></span>
         </div>
       </td>
       <td data-label="Status" class="text-center">${statusBadgeHtml}</td>
       <td data-label="Action" class="text-center">
-        <button class="btn btn-sm btn-primary">
+        <button class="btn btn-sm btn-primary" style="width: 100%;">
           Record Cutoff ➔
         </button>
       </td>
