@@ -1,2 +1,9 @@
 data/member_reasons.json
 data/shg_cutoff_responses.json
+
+# Exported CSVs and Excel files (not part of source code)
+*.csv
+*.xlsx
+
+# Utility scripts
+restore_reasons.js
