@@ -39,6 +39,7 @@ const state = {
   savedCutoff: {},      // { [shgCode]: { [date]: "Yes" | "No" } }
   selectedCutoffGp: '',
   selectedCutoffVillage: '',
+  selectedCutoffDate: '12.08.2026',
   cutoffSearchQuery: '',
   cutoffHasUnsaved: false
 };
@@ -107,6 +108,9 @@ const el = {
   selectCutoffGp: document.getElementById('selectCutoffGp'),
   selectCutoffVillage: document.getElementById('selectCutoffVillage'),
   cutoffSearchInput: document.getElementById('cutoffSearchInput'),
+  dateTabsBar: document.getElementById('dateTabsBar'),
+  cutoffDateColumnHeader: document.getElementById('cutoffDateColumnHeader'),
+  selectedDateLabelHeader: document.getElementById('selectedDateLabelHeader'),
   statCutoffTotal: document.getElementById('statCutoffTotal'),
   statCutoff12: document.getElementById('statCutoff12'),
   statCutoff13: document.getElementById('statCutoff13'),
@@ -116,6 +120,8 @@ const el = {
   statCutoff17: document.getElementById('statCutoff17'),
   statCutoff18: document.getElementById('statCutoff18'),
   cutoffUnsavedNotice: document.getElementById('cutoffUnsavedNotice'),
+  markAllYesBtn: document.getElementById('markAllYesBtn'),
+  markAllNoBtn: document.getElementById('markAllNoBtn'),
   saveCutoffBtn: document.getElementById('saveCutoffBtn'),
   cutoffTableBody: document.getElementById('cutoffTableBody')
 };
@@ -317,6 +323,32 @@ function bindEvents() {
       state.cutoffSearchQuery = e.target.value.trim().toLowerCase();
       renderCutoffTable();
     });
+  }
+
+  // Date Tabs selection
+  if (el.dateTabsBar) {
+    el.dateTabsBar.addEventListener('click', (e) => {
+      const btn = e.target.closest('.date-tab');
+      if (!btn) return;
+      const targetDate = btn.getAttribute('data-date');
+      if (targetDate && state.selectedCutoffDate !== targetDate) {
+        state.selectedCutoffDate = targetDate;
+        el.dateTabsBar.querySelectorAll('.date-tab').forEach(tb => {
+          tb.classList.toggle('active', tb.getAttribute('data-date') === targetDate);
+        });
+        if (el.selectedDateLabelHeader) el.selectedDateLabelHeader.textContent = targetDate;
+        renderCutoffTable();
+      }
+    });
+  }
+
+  // Bulk Actions
+  if (el.markAllYesBtn) {
+    el.markAllYesBtn.addEventListener('click', () => bulkMarkCutoff('Yes'));
+  }
+
+  if (el.markAllNoBtn) {
+    el.markAllNoBtn.addEventListener('click', () => bulkMarkCutoff('No'));
   }
 
   if (el.saveCutoffBtn) {
@@ -713,13 +745,7 @@ function populateCutoffVillageDropdown() {
   el.selectCutoffVillage.disabled = false;
 }
 
-function renderCutoffTable() {
-  if (!el.cutoffTableBody) return;
-  if (!state.cutoffList || state.cutoffList.length === 0) {
-    el.cutoffTableBody.innerHTML = '<tr><td colspan="10" class="placeholder-row">Loading SHG Cutoff data...</td></tr>';
-    return;
-  }
-
+function getFilteredCutoffList() {
   let filtered = state.cutoffList;
 
   if (state.selectedCutoffGp) {
@@ -735,6 +761,23 @@ function renderCutoffTable() {
     filtered = filtered.filter(item =>
       item.shgName.toLowerCase().includes(q) || item.shgCode.includes(q)
     );
+  }
+
+  return filtered;
+}
+
+function renderCutoffTable() {
+  if (!el.cutoffTableBody) return;
+  if (!state.cutoffList || state.cutoffList.length === 0) {
+    el.cutoffTableBody.innerHTML = '<tr><td colspan="5" class="placeholder-row">Loading SHG Cutoff data...</td></tr>';
+    return;
+  }
+
+  const filtered = getFilteredCutoffList();
+
+  // Update Header Date Label
+  if (el.selectedDateLabelHeader) {
+    el.selectedDateLabelHeader.textContent = state.selectedCutoffDate;
   }
 
   // Update Stats
@@ -759,7 +802,7 @@ function renderCutoffTable() {
   if (el.statCutoff18) el.statCutoff18.textContent = dateCounts['18.08.2026'];
 
   if (filtered.length === 0) {
-    el.cutoffTableBody.innerHTML = '<tr><td colspan="10" class="placeholder-row">No SHGs match the selected filters.</td></tr>';
+    el.cutoffTableBody.innerHTML = '<tr><td colspan="5" class="placeholder-row">No SHGs match the selected filters.</td></tr>';
     return;
   }
 
@@ -771,40 +814,31 @@ function renderCutoffTable() {
   let html = '';
   displayItems.forEach((item, index) => {
     const resp = state.savedCutoff[item.shgCode] || {};
+    const val = resp[state.selectedCutoffDate];
+    const yesSel = val === 'Yes' ? 'selected' : '';
+    const noSel = val === 'No' ? 'selected' : '';
     
     html += `<tr>
-      <td class="text-muted" style="font-size:0.75rem;">${item.sl || (index + 1)}</td>
-      <td>
-        <div class="gp-vlg-text">
-          <strong>${escapeHtml(item.gp)}</strong><br/>
-          <span>${escapeHtml(item.village)}</span>
-        </div>
-      </td>
+      <td class="text-muted" style="font-size:0.8rem;">${item.sl || (index + 1)}</td>
+      <td><strong>${escapeHtml(item.gp)}</strong></td>
+      <td><span>${escapeHtml(item.village)}</span></td>
       <td>
         <div class="shg-info-cell">
           <span class="shg-name-text">${escapeHtml(item.shgName)}</span>
           <span class="shg-code-text">${escapeHtml(item.shgCode)}</span>
         </div>
-      </td>`;
-
-    CUTOFF_DATES.forEach(date => {
-      const val = resp[date];
-      const yesSel = val === 'Yes' ? 'selected' : '';
-      const noSel = val === 'No' ? 'selected' : '';
-
-      html += `<td class="text-center">
-        <div class="toggle-segment">
-          <button class="toggle-btn btn-yes ${yesSel}" data-sc="${item.shgCode}" data-dt="${date}" data-val="Yes" onclick="handleCutoffToggle(this)">Yes</button>
-          <button class="toggle-btn btn-no ${noSel}" data-sc="${item.shgCode}" data-dt="${date}" data-val="No" onclick="handleCutoffToggle(this)">No</button>
+      </td>
+      <td class="text-center">
+        <div class="toggle-segment-large">
+          <button class="toggle-btn-lg btn-yes ${yesSel}" data-sc="${item.shgCode}" data-dt="${state.selectedCutoffDate}" data-val="Yes" onclick="handleCutoffToggle(this)">Yes</button>
+          <button class="toggle-btn-lg btn-no ${noSel}" data-sc="${item.shgCode}" data-dt="${state.selectedCutoffDate}" data-val="No" onclick="handleCutoffToggle(this)">No</button>
         </div>
-      </td>`;
-    });
-
-    html += `</tr>`;
+      </td>
+    </tr>`;
   });
 
   if (filtered.length > displayItems.length) {
-    html += `<tr><td colspan="10" class="placeholder-row" style="padding:1rem; font-weight:600; color:var(--primary);">
+    html += `<tr><td colspan="5" class="placeholder-row" style="padding:1rem; font-weight:600; color:var(--primary);">
       Showing first ${displayItems.length} of ${filtered.length} SHGs. Select a Gram Panchayat or Village to narrow down.
     </td></tr>`;
   }
@@ -848,17 +882,34 @@ window.handleCutoffToggle = function(btn) {
   updateCutoffStatsOnly();
 };
 
+function bulkMarkCutoff(val) {
+  const filtered = getFilteredCutoffList();
+  if (filtered.length === 0) return;
+
+  const curDate = state.selectedCutoffDate;
+  const now = new Date().toISOString();
+
+  filtered.forEach(item => {
+    if (!state.savedCutoff[item.shgCode]) {
+      state.savedCutoff[item.shgCode] = {};
+    }
+    state.savedCutoff[item.shgCode][curDate] = val;
+    state.savedCutoff[item.shgCode].updatedAt = now;
+  });
+
+  localStorage.setItem('shg_cutoff_responses', JSON.stringify(state.savedCutoff));
+
+  state.cutoffHasUnsaved = true;
+  if (el.cutoffUnsavedNotice) el.cutoffUnsavedNotice.style.display = 'inline-block';
+
+  renderCutoffTable();
+  showToast(`✓ Marked ${val} for ${filtered.length} SHGs on ${curDate}`);
+}
+
 function updateCutoffStatsOnly() {
   if (!state.cutoffList) return;
 
-  let filtered = state.cutoffList;
-  if (state.selectedCutoffGp) filtered = filtered.filter(item => item.gp === state.selectedCutoffGp);
-  if (state.selectedCutoffVillage) filtered = filtered.filter(item => item.village === state.selectedCutoffVillage);
-  if (state.cutoffSearchQuery) {
-    const q = state.cutoffSearchQuery;
-    filtered = filtered.filter(item => item.shgName.toLowerCase().includes(q) || item.shgCode.includes(q));
-  }
-
+  const filtered = getFilteredCutoffList();
   if (el.statCutoffTotal) el.statCutoffTotal.textContent = filtered.length.toLocaleString();
 
   const dateCounts = {};

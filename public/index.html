@@ -233,7 +233,7 @@
       <section class="selector-card">
         <div class="cutoff-header-title">
           <h3>SHG Cutoff Date-Wise Status Tracker</h3>
-          <p>Tap <strong>Yes</strong> or <strong>No</strong> for each date (12.08.2026 to 18.08.2026) and click Save</p>
+          <p>Select a <strong>Cutoff Date</strong> below, then tap <strong>Yes</strong> or <strong>No</strong> for each SHG</p>
         </div>
         <div class="selector-grid">
           <div class="selector-item">
@@ -254,6 +254,22 @@
             <label for="cutoffSearchInput">3. Search SHG Name or Code</label>
             <input type="text" id="cutoffSearchInput" placeholder="Type SHG Name or Code..." />
           </div>
+        </div>
+      </section>
+
+      <!-- Date Selection Pill Bar -->
+      <section class="date-selector-card">
+        <div class="date-selector-header">
+          <span class="date-selector-label">📅 Select Cutoff Date:</span>
+        </div>
+        <div class="date-tabs-bar" id="dateTabsBar">
+          <button class="date-tab active" data-date="12.08.2026">12.08.2026</button>
+          <button class="date-tab" data-date="13.08.2026">13.08.2026</button>
+          <button class="date-tab" data-date="14.08.2026">14.08.2026</button>
+          <button class="date-tab" data-date="15.08.2026">15.08.2026</button>
+          <button class="date-tab" data-date="16.08.2026">16.08.2026</button>
+          <button class="date-tab" data-date="17.08.2026">17.08.2026</button>
+          <button class="date-tab" data-date="18.08.2026">18.08.2026</button>
         </div>
       </section>
 
@@ -297,10 +313,20 @@
 
       <!-- Save & Action Bar -->
       <div class="cutoff-action-bar">
-        <span id="cutoffUnsavedNotice" class="unsaved-badge" style="display:none;">⚠️ Unsaved Changes</span>
-        <button id="saveCutoffBtn" class="btn btn-primary btn-lg">
-          💾 Save Cutoff Responses
-        </button>
+        <div class="bulk-actions">
+          <button id="markAllYesBtn" class="btn btn-sm btn-outline" title="Mark Yes for all SHGs displayed under selected date">
+            ✓ Mark All Yes
+          </button>
+          <button id="markAllNoBtn" class="btn btn-sm btn-outline" title="Mark No for all SHGs displayed under selected date">
+            ✕ Mark All No
+          </button>
+        </div>
+        <div class="save-group">
+          <span id="cutoffUnsavedNotice" class="unsaved-badge" style="display:none;">⚠️ Unsaved Changes</span>
+          <button id="saveCutoffBtn" class="btn btn-primary btn-lg">
+            💾 Save Cutoff Responses
+          </button>
+        </div>
       </div>
 
       <!-- Cutoff Table Container -->
@@ -309,21 +335,18 @@
           <table class="members-table cutoff-table">
             <thead>
               <tr>
-                <th style="width: 40px;">Sl</th>
-                <th>GP & Village</th>
+                <th style="width: 50px;">Sl</th>
+                <th>Gram Panchayat</th>
+                <th>Village</th>
                 <th>SHG Code & Name</th>
-                <th class="text-center">12.08.2026</th>
-                <th class="text-center">13.08.2026</th>
-                <th class="text-center">14.08.2026</th>
-                <th class="text-center">15.08.2026</th>
-                <th class="text-center">16.08.2026</th>
-                <th class="text-center">17.08.2026</th>
-                <th class="text-center">18.08.2026</th>
+                <th class="text-center" style="min-width: 220px;" id="cutoffDateColumnHeader">
+                  Cutoff Status (<span id="selectedDateLabelHeader">12.08.2026</span>)
+                </th>
               </tr>
             </thead>
             <tbody id="cutoffTableBody">
               <tr>
-                <td colspan="10" class="placeholder-row">
+                <td colspan="5" class="placeholder-row">
                   Loading SHG Cutoff data...
                 </td>
               </tr>
