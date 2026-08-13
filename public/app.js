@@ -536,7 +536,7 @@ function renderMembersTable() {
         <td data-label="Member">
           <div class="member-name-cell">
             <span class="m-name">${escapeHtml(m.mn)}</span>
-            <span class="m-code">Code: ${escapeHtml(m.mc)}</span>
+            <span class="m-code">(${escapeHtml(m.mc)})</span>
           </div>
         </td>
         <td data-label="SHG">
@@ -880,7 +880,7 @@ function renderCutoffTable() {
         <td data-label="SHG">
           <div class="member-name-cell">
             <span class="m-name">${escapeHtml(item.shgName)}</span>
-            <span class="m-code">Code: ${escapeHtml(item.shgCode)}</span>
+            <span class="m-code">(${escapeHtml(item.shgCode)})</span>
           </div>
         </td>
         <td data-label="Village">
