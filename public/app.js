@@ -152,12 +152,7 @@ function loadSavedDataFromLocal() {
     state.savedReasons = {};
   }
 
-  try {
-    const rawCutoff = localStorage.getItem('shg_cutoff_responses');
-    if (rawCutoff) state.savedCutoff = JSON.parse(rawCutoff);
-  } catch (e) {
-    state.savedCutoff = {};
-  }
+  // Cutoff responses are always loaded fresh from server — no local cache
 }
 
 async function loadData() {
@@ -196,9 +191,8 @@ async function loadData() {
     }
 
     if (cutoffApiRes && cutoffApiRes.ok) {
-      const serverCutoff = await cutoffApiRes.json();
-      state.savedCutoff = { ...state.savedCutoff, ...serverCutoff };
-      localStorage.setItem('shg_cutoff_responses', JSON.stringify(state.savedCutoff));
+      state.savedCutoff = await cutoffApiRes.json();
+      // No localStorage — server is single source of truth
     }
 
     if (state.activeTab === 'cutoff') {
@@ -1014,8 +1008,7 @@ window.handleDetailCutoffToggle = function(btn) {
   }
   state.savedCutoff[shg.shgCode].updatedAt = new Date().toISOString();
 
-  // Save to local storage
-  localStorage.setItem('shg_cutoff_responses', JSON.stringify(state.savedCutoff));
+  // State is kept in memory; server is synced on Save
 
   // Update visual button state & card theme immediately
   const card = document.getElementById(`cardDate_${date}`);
@@ -1131,7 +1124,7 @@ function clearCutoffDetail() {
   if (!shg) return;
 
   delete state.savedCutoff[shg.shgCode];
-  localStorage.setItem('shg_cutoff_responses', JSON.stringify(state.savedCutoff));
+  // No localStorage — remove from memory and sync to server below
 
   const payload = { [shg.shgCode]: {} };
   fetch('/api/cutoff', {
