@@ -838,11 +838,24 @@ body {
 }
 
 .stat-box {
-  background-color: #f8fafc;
+  background-color: #ffffff;
   border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  padding: 0.5rem 0.65rem;
+  border-radius: 8px;
+  padding: 0.6rem 0.5rem;
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+}
+
+.stat-date-title {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 0.15rem;
 }
 
 .stat-box .stat-label {
@@ -854,14 +867,38 @@ body {
 }
 
 .stat-box .stat-num {
-  font-size: 1.15rem;
-  font-weight: 700;
+  font-size: 1.25rem;
+  font-weight: 800;
   color: var(--text-main);
   font-family: var(--font-mono);
+  line-height: 1.1;
+  margin: 0.1rem 0;
 }
 
 .stat-box .stat-num.stat-green {
   color: #16a34a;
+}
+
+.stat-sub-tag {
+  display: inline-block;
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  padding: 0.1rem 0.45rem;
+  border-radius: 10px;
+  margin-top: 0.2rem;
+}
+
+.stat-sub-tag.tag-done {
+  background-color: #dcfce7;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+.stat-sub-tag.tag-neutral {
+  background-color: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
 }
 
 /* Date Selector Pill Bar */
