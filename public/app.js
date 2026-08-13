@@ -145,12 +145,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function loadSavedDataFromLocal() {
-  try {
-    const rawReasons = localStorage.getItem('shg_member_reasons');
-    if (rawReasons) state.savedReasons = JSON.parse(rawReasons);
-  } catch (e) {
-    state.savedReasons = {};
-  }
+  // Member reasons always loaded fresh from server — no local cache
 
   // Cutoff responses are always loaded fresh from server — no local cache
 }
@@ -176,9 +171,8 @@ async function loadData() {
     }
 
     if (reasonsRes && reasonsRes.ok) {
-      const serverReasons = await reasonsRes.json();
-      state.savedReasons = serverReasons || {};
-      localStorage.setItem('shg_member_reasons', JSON.stringify(state.savedReasons));
+      state.savedReasons = await reasonsRes.json() || {};
+      // No localStorage — server is single source of truth
     }
 
     if (cutoffListRes && cutoffListRes.ok) {
@@ -688,7 +682,7 @@ function saveCurrentReason(autoAdvance = true) {
   };
 
   state.savedReasons[m.mc] = payload[m.mc];
-  localStorage.setItem('shg_member_reasons', JSON.stringify(state.savedReasons));
+  // No localStorage — server is synced below
 
   fetch('/api/reasons', {
     method: 'POST',
@@ -718,7 +712,7 @@ function clearCurrentReason() {
   el.detailRemarksInput.classList.remove('input-error');
 
   delete state.savedReasons[m.mc];
-  localStorage.setItem('shg_member_reasons', JSON.stringify(state.savedReasons));
+  // No localStorage — server is synced below
 
   const payload = { [m.mc]: { reason: '', remarks: '', updatedAt: new Date().toISOString() } };
   fetch('/api/reasons', {
