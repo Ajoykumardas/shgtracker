@@ -379,7 +379,10 @@ function populateVillageDropdown() {
     return;
   }
 
-  const villages = Object.keys(state.hierarchy[state.selectedGp]).sort();
+  const gpObj = state.hierarchy[state.selectedGp];
+  const villagesObj = gpObj.villages || gpObj;
+  const villages = Object.keys(villagesObj).sort();
+
   el.selectVillage.innerHTML = '<option value="">-- Select Village --</option>' +
     villages.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
   el.selectVillage.disabled = false;
@@ -391,14 +394,34 @@ function resetVillageDropdown() {
 }
 
 function populateShgDropdown() {
-  if (!state.selectedGp || !state.selectedVillage || !state.hierarchy[state.selectedGp][state.selectedVillage]) {
+  if (!state.selectedGp || !state.selectedVillage || !state.hierarchy[state.selectedGp]) {
     resetShgDropdown();
     return;
   }
 
-  const shgs = state.hierarchy[state.selectedGp][state.selectedVillage];
+  const gpObj = state.hierarchy[state.selectedGp];
+  const villagesObj = gpObj.villages || gpObj;
+  const villageObj = villagesObj[state.selectedVillage];
+  if (!villageObj) {
+    resetShgDropdown();
+    return;
+  }
+
+  const shgsObj = villageObj.shgs || villageObj;
+  let shgsList = [];
+  if (Array.isArray(shgsObj)) {
+    shgsList = shgsObj;
+  } else if (typeof shgsObj === 'object') {
+    shgsList = Object.values(shgsObj).map(s => ({
+      sc: s.code || s.sc,
+      sn: s.name || s.sn
+    }));
+  }
+
+  shgsList.sort((a, b) => (a.sn || '').localeCompare(b.sn || ''));
+
   el.selectShg.innerHTML = '<option value="">-- Select SHG --</option>' +
-    shgs.map(s => `<option value="${escapeHtml(s.sc)}">${escapeHtml(s.sn)} (${escapeHtml(s.sc)})</option>`).join('');
+    shgsList.map(s => `<option value="${escapeHtml(s.sc)}">${escapeHtml(s.sn)} (${escapeHtml(s.sc)})</option>`).join('');
   el.selectShg.disabled = false;
 }
 
