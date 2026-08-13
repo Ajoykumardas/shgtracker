@@ -875,7 +875,7 @@ function renderCutoffTable() {
     }
 
     html += `
-      <tr onclick="openCutoffDetail(${index})" class="clickable-row">
+      <tr>
         <td data-label="Sl" class="text-muted" style="font-size:0.8rem;">${item.sl || (index + 1)}</td>
         <td data-label="SHG">
           <div class="member-name-cell">
@@ -888,7 +888,7 @@ function renderCutoffTable() {
         </td>
         <td data-label="Cutoff Status" class="text-center">${statusBadgeHtml}</td>
         <td data-label="Action" class="text-center">
-          <button class="btn btn-sm btn-primary">
+          <button class="btn btn-sm btn-primary" onclick="openCutoffDetail(${index})">
             Record Cutoff ➔
           </button>
         </td>
