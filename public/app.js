@@ -796,12 +796,31 @@ function renderCutoffTable() {
     return;
   }
 
-  // Hide list by default until GP, Village, or Search query is selected
+  // 1. If no GP and no Search query -> prompt to select GP & Village
   if (!state.selectedCutoffGp && !state.selectedCutoffVillage && !state.cutoffSearchQuery) {
     if (el.statCutoffTotal) el.statCutoffTotal.textContent = '0';
+    CUTOFF_DATES.forEach(d => {
+      const key = 'statCutoff' + d.slice(0, 2);
+      if (el[key]) el[key].textContent = '0';
+    });
     cardList.innerHTML = `
       <div class="cutoff-placeholder-msg">
         Select a <strong>Gram Panchayat</strong> and <strong>Village</strong> above to view SHG list.
+      </div>
+    `;
+    return;
+  }
+
+  // 2. If GP is selected but NO Village and NO Search query -> prompt to select Village
+  if (state.selectedCutoffGp && !state.selectedCutoffVillage && !state.cutoffSearchQuery) {
+    if (el.statCutoffTotal) el.statCutoffTotal.textContent = '0';
+    CUTOFF_DATES.forEach(d => {
+      const key = 'statCutoff' + d.slice(0, 2);
+      if (el[key]) el[key].textContent = '0';
+    });
+    cardList.innerHTML = `
+      <div class="cutoff-placeholder-msg">
+        Please select a <strong>Village</strong> for <strong>${escapeHtml(state.selectedCutoffGp)}</strong> above to view SHGs.
       </div>
     `;
     return;
