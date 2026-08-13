@@ -71,6 +71,13 @@ body {
   flex-wrap: wrap;
 }
 
+.header-right-group {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
 .brand-title h2 {
   font-size: 1.15rem;
   font-weight: 700;
@@ -810,16 +817,24 @@ body {
 }
 
 /* SHG Cutoff Header & Stats */
+.cutoff-header-title {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.85rem;
+  margin-bottom: 1rem;
+}
+
 .cutoff-header-title h3 {
   font-size: 1.1rem;
   font-weight: 700;
   color: var(--text-main);
+  margin-bottom: 0.25rem;
 }
 
 .cutoff-header-title p {
-  font-size: 0.85rem;
+  font-size: 0.825rem;
   color: var(--text-muted);
-  margin-bottom: 0.85rem;
+  margin: 0;
+  line-height: 1.4;
 }
 
 .stats-card {
