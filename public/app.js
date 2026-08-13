@@ -117,7 +117,7 @@ const el = {
   statCutoff16: document.getElementById('statCutoff16'),
   statCutoff17: document.getElementById('statCutoff17'),
   statCutoff18: document.getElementById('statCutoff18'),
-  cutoffTableBody: document.getElementById('cutoffTableBody'),
+  cutoffCardList: document.getElementById('cutoffCardList'),
 
   // Cutoff Detail Elements
   cutoffBackToListBtn: document.getElementById('cutoffBackToListBtn'),
@@ -454,16 +454,18 @@ function renderMembersTable() {
 
   el.memberStatsBadge.textContent = `${list.length.toLocaleString()} Members`;
 
-  if (!state.selectedGp && !state.selectedVillage && !state.selectedShg && !state.searchQuery) {
+  if (!state.selectedShg && !state.searchQuery) {
     el.membersTableBody.innerHTML = `
       <tr>
         <td colspan="7" class="placeholder-row">
-          Please select a <strong>Gram Panchayat</strong>, <strong>Village</strong>, or <strong>SHG</strong> above to view member list.
+          Please select a <strong>Gram Panchayat</strong>, then <strong>Village</strong>, then <strong>SHG</strong> above to view members.
         </td>
       </tr>
     `;
+    el.listHeaderBar.style.display = 'none';
     return;
   }
+  el.listHeaderBar.style.display = 'flex';
 
   if (list.length === 0) {
     el.membersTableBody.innerHTML = `
@@ -763,21 +765,21 @@ function getFilteredCutoffList() {
 }
 
 function renderCutoffTable() {
-  if (!el.cutoffTableBody) return;
+  const cardList = el.cutoffCardList;
+  if (!cardList) return;
+
   if (!state.cutoffList || state.cutoffList.length === 0) {
-    el.cutoffTableBody.innerHTML = '<tr><td colspan="6" class="placeholder-row">Loading SHG Cutoff data...</td></tr>';
+    cardList.innerHTML = '<div class="cutoff-placeholder-msg">Loading SHG Cutoff data...</div>';
     return;
   }
 
   // Hide list by default until GP, Village, or Search query is selected
   if (!state.selectedCutoffGp && !state.selectedCutoffVillage && !state.cutoffSearchQuery) {
     if (el.statCutoffTotal) el.statCutoffTotal.textContent = '0';
-    el.cutoffTableBody.innerHTML = `
-      <tr>
-        <td colspan="6" class="placeholder-row">
-          Please select a <strong>Gram Panchayat</strong>, <strong>Village</strong>, or type in the <strong>Search box</strong> above to view SHG list.
-        </td>
-      </tr>
+    cardList.innerHTML = `
+      <div class="cutoff-placeholder-msg">
+        Select a <strong>Gram Panchayat</strong> and <strong>Village</strong> above to view SHG list.
+      </div>
     `;
     return;
   }
@@ -806,7 +808,7 @@ function renderCutoffTable() {
   if (el.statCutoff18) el.statCutoff18.textContent = dateCounts['18.08.2026'];
 
   if (filtered.length === 0) {
-    el.cutoffTableBody.innerHTML = '<tr><td colspan="6" class="placeholder-row">No SHGs match the selected filters.</td></tr>';
+    cardList.innerHTML = '<div class="cutoff-placeholder-msg">No SHGs match the selected filters.</div>';
     return;
   }
 
@@ -825,40 +827,46 @@ function renderCutoffTable() {
       if (resp[d]) markedCount++;
     });
 
-    let statusBadgeHtml = '';
+    let badgeClass = 'badge-neutral';
+    let badgeText = '0/7 Pending';
     if (markedCount === 7) {
-      statusBadgeHtml = '<span class="status-badge badge-success">✓ 7/7 Dates Complete</span>';
+      badgeClass = 'badge-success';
+      badgeText = '✓ 7/7 Complete';
     } else if (markedCount > 0) {
-      statusBadgeHtml = `<span class="status-badge badge-warning">${markedCount}/7 Dates Marked</span>`;
-    } else {
-      statusBadgeHtml = '<span class="status-badge badge-neutral">0/7 Dates Pending</span>';
+      badgeClass = 'badge-warning';
+      badgeText = `${markedCount}/7 Marked`;
     }
 
-    html += `<tr onclick="openCutoffDetail(${index})" class="clickable-row">
-      <td data-label="Sl. No." class="text-muted" style="font-size:0.85rem; font-weight:600;">${item.sl || (index + 1)}</td>
-      <td data-label="SHG Profile">
-        <div style="display: flex; flex-direction: column; gap: 0.2rem;">
-          <span style="font-weight: 700; color: var(--text-main); font-size: 0.95rem;">${escapeHtml(item.shgName)}</span>
-          <span style="color: var(--text-muted); font-size: 0.8rem; font-family: monospace;">Code: ${escapeHtml(item.shgCode)}</span>
-          <span style="color: var(--text-muted); font-size: 0.75rem;">GP: <strong>${escapeHtml(item.gp)}</strong> &bull; Village: <strong>${escapeHtml(item.village)}</strong></span>
+    // Progress bar percentage
+    const pct = Math.round((markedCount / 7) * 100);
+
+    html += `
+    <div class="cutoff-shg-card" onclick="openCutoffDetail(${index})">
+      <div class="cutoff-card-left">
+        <span class="cutoff-card-sl">${item.sl || (index + 1)}</span>
+        <div class="cutoff-card-info">
+          <span class="cutoff-card-name">${escapeHtml(item.shgName)}</span>
+          <span class="cutoff-card-code">${escapeHtml(item.shgCode)}</span>
+          <span class="cutoff-card-location">${escapeHtml(item.village)}</span>
         </div>
-      </td>
-      <td data-label="Status" class="text-center">${statusBadgeHtml}</td>
-      <td data-label="Action" class="text-center">
-        <button class="btn btn-sm btn-primary" style="width: 100%;">
-          Record Cutoff ➔
-        </button>
-      </td>
-    </tr>`;
+      </div>
+      <div class="cutoff-card-right">
+        <div class="cutoff-card-progress-wrap">
+          <span class="status-badge ${badgeClass}">${badgeText}</span>
+          <div class="cutoff-progress-bar"><div class="cutoff-progress-fill" style="width:${pct}%"></div></div>
+        </div>
+        <button class="btn btn-sm btn-primary cutoff-card-btn">Open ➔</button>
+      </div>
+    </div>`;
   });
 
   if (filtered.length > displayItems.length) {
-    html += `<tr><td colspan="6" class="placeholder-row" style="padding:1rem; font-weight:600; color:var(--primary);">
-      Showing first ${displayItems.length} of ${filtered.length} SHGs. Select a Gram Panchayat or Village to narrow down.
-    </td></tr>`;
+    html += `<div class="cutoff-placeholder-msg" style="font-weight:600; color:var(--primary);">
+      Showing first ${displayItems.length} of ${filtered.length} SHGs. Select a Village to narrow down.
+    </div>`;
   }
 
-  el.cutoffTableBody.innerHTML = html;
+  cardList.innerHTML = html;
 }
 
 function openCutoffDetail(index) {

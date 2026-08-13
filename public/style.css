@@ -1087,3 +1087,162 @@ body {
     text-align: right;
   }
 }
+
+/* ==========================================================================
+   SHG Cutoff Card List (Redesigned)
+   ========================================================================== */
+
+.cutoff-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.cutoff-placeholder-msg {
+  text-align: center;
+  padding: 2.5rem 1.5rem;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  background: #f8fafc;
+  border: 2px dashed #e2e8f0;
+  border-radius: var(--radius);
+}
+
+.cutoff-shg-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+
+.cutoff-shg-card:hover {
+  border-color: var(--primary);
+  box-shadow: 0 3px 12px rgba(37, 99, 235, 0.12);
+  transform: translateY(-1px);
+}
+
+.cutoff-card-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.cutoff-card-sl {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #eff6ff, #dbeafe);
+  color: var(--primary);
+  font-weight: 700;
+  font-size: 0.85rem;
+  border-radius: 8px;
+  border: 1px solid rgba(37, 99, 235, 0.15);
+}
+
+.cutoff-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.cutoff-card-name {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cutoff-card-code {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.cutoff-card-location {
+  font-size: 0.72rem;
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.cutoff-card-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.cutoff-card-progress-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  min-width: 95px;
+}
+
+.cutoff-progress-bar {
+  width: 100%;
+  height: 4px;
+  background: #e2e8f0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.cutoff-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #3b82f6, #10b981);
+  border-radius: 4px;
+  transition: width 0.4s ease;
+}
+
+.cutoff-card-btn {
+  white-space: nowrap;
+  min-width: 75px;
+}
+
+/* Mobile responsive for cutoff cards */
+@media (max-width: 600px) {
+  .cutoff-shg-card {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.65rem;
+    padding: 0.75rem;
+  }
+
+  .cutoff-card-left {
+    gap: 0.6rem;
+  }
+
+  .cutoff-card-right {
+    flex-direction: row;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+
+  .cutoff-card-progress-wrap {
+    flex: 1;
+    align-items: flex-start;
+  }
+
+  .cutoff-card-btn {
+    min-width: 80px;
+  }
+
+  .cutoff-card-name {
+    white-space: normal;
+  }
+}
