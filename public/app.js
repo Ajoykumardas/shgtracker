@@ -22,7 +22,7 @@ const CUTOFF_DATES = [
 ];
 
 const state = {
-  activeTab: 'members', // 'members' | 'cutoff'
+  activeTab: 'lakhpati', // 'lakhpati' default | 'members' | 'cutoff'
   hierarchy: null,
   members: [],
   savedReasons: {},     // { [memberCode]: { reason: string, remarks: string, updatedAt: string } }
@@ -41,7 +41,17 @@ const state = {
   selectedCutoffVillage: '',
   cutoffSearchQuery: '',
   cutoffCurrentList: [],
-  activeCutoffIndex: -1
+  activeCutoffIndex: -1,
+
+  // Lakhpati Didi state
+  lakhpatiMembers: [],
+  lakhpatiHierarchy: null,
+  savedLakhpatiInactive: {},  // { [pldCode]: { needInactive: true/false, updatedAt: string } }
+  selectedLakhpatiGp: '',
+  selectedLakhpatiVillage: '',
+  selectedLakhpatiShg: '',
+  lakhpatiCurrentList: [],
+  lakhpatiShgCodeSearch: ''  // SHG code search term
 };
 
 // DOM Elements Cache
@@ -135,7 +145,23 @@ const el = {
   saveCutoffDetailOnlyBtn: document.getElementById('saveCutoffDetailOnlyBtn'),
   clearCutoffDetailBtn: document.getElementById('clearCutoffDetailBtn'),
   cutoffSavedTimestampNotice: document.getElementById('cutoffSavedTimestampNotice'),
-  cutoffSavedTimestampText: document.getElementById('cutoffSavedTimestampText')
+  cutoffSavedTimestampText: document.getElementById('cutoffSavedTimestampText'),
+
+  // Lakhpati Didi Elements
+  navTabLakhpati: document.getElementById('navTabLakhpati'),
+  lakhpatiListView: document.getElementById('lakhpatiListView'),
+  exportLakhpatiCsvBtn: document.getElementById('exportLakhpatiCsvBtn'),
+  selectLakhpatiGp: document.getElementById('selectLakhpatiGp'),
+  selectLakhpatiVillage: document.getElementById('selectLakhpatiVillage'),
+  selectLakhpatiShg: document.getElementById('selectLakhpatiShg'),
+  lakhpatiStatsSection: document.getElementById('lakhpatiStatsSection'),
+  statLakhpatiTotal: document.getElementById('statLakhpatiTotal'),
+  statLakhpatiMarked: document.getElementById('statLakhpatiMarked'),
+  statLakhpatiRemaining: document.getElementById('statLakhpatiRemaining'),
+  lakhpatiTableBody: document.getElementById('lakhpatiTableBody'),
+  lakhpatiShgCodeInput: document.getElementById('lakhpatiShgCodeInput'),
+  lakhpatiShgCodeSearchBtn: document.getElementById('lakhpatiShgCodeSearchBtn'),
+  lakhpatiResetBtn: document.getElementById('lakhpatiResetBtn')
 };
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -152,13 +178,16 @@ function loadSavedDataFromLocal() {
 
 async function loadData() {
   try {
-    const [hierRes, memRes, reasonsRes, cutoffListRes, cutoffHierRes, cutoffApiRes] = await Promise.all([
+    const [hierRes, memRes, reasonsRes, cutoffListRes, cutoffHierRes, cutoffApiRes, lakhpatiMemRes, lakhpatiHierRes, lakhpatiApiRes] = await Promise.all([
       fetch('hierarchy_summary.json'),
       fetch('members.json'),
       fetch('/api/reasons').catch(() => null),
       fetch('shg_cutoff_list.json').catch(() => null),
       fetch('shg_cutoff_hierarchy.json').catch(() => null),
-      fetch('/api/cutoff').catch(() => null)
+      fetch('/api/cutoff').catch(() => null),
+      fetch('lakhpati_members.json').catch(() => null),
+      fetch('lakhpati_hierarchy.json').catch(() => null),
+      fetch('/api/lakhpati').catch(() => null)
     ]);
 
     if (hierRes.ok) {
@@ -192,6 +221,23 @@ async function loadData() {
     if (state.activeTab === 'cutoff') {
       renderCutoffTable();
     }
+
+    if (lakhpatiMemRes && lakhpatiMemRes.ok) {
+      state.lakhpatiMembers = await lakhpatiMemRes.json();
+    }
+
+    if (lakhpatiHierRes && lakhpatiHierRes.ok) {
+      state.lakhpatiHierarchy = await lakhpatiHierRes.json();
+      populateLakhpatiGpDropdown();
+    }
+
+    if (lakhpatiApiRes && lakhpatiApiRes.ok) {
+      state.savedLakhpatiInactive = await lakhpatiApiRes.json();
+    }
+
+    if (state.activeTab === 'lakhpati') {
+      switchTab('lakhpati');
+    }
   } catch (err) {
     console.error('Error loading data:', err);
   }
@@ -201,30 +247,78 @@ function switchTab(tabName) {
   state.activeTab = tabName;
   if (tabName === 'members') {
     if (el.navTabMembers) el.navTabMembers.classList.add('active');
-    if (el.navTabCutoff) el.navTabCutoff.classList.remove('active');
+    if (el.navTabLakhpati) el.navTabLakhpati.classList.remove('active');
     if (el.memberListView) el.memberListView.style.display = 'block';
     if (el.memberReasonView) el.memberReasonView.style.display = 'none';
     if (el.shgCutoffListView) el.shgCutoffListView.style.display = 'none';
     if (el.shgCutoffDetailView) el.shgCutoffDetailView.style.display = 'none';
+    if (el.lakhpatiListView) el.lakhpatiListView.style.display = 'none';
     if (el.exportAllCsvBtn) el.exportAllCsvBtn.style.display = 'inline-flex';
-    if (el.exportCutoffCsvBtn) el.exportCutoffCsvBtn.style.display = 'none';
-  } else if (tabName === 'cutoff') {
+    if (el.exportLakhpatiCsvBtn) el.exportLakhpatiCsvBtn.style.display = 'none';
+  } else if (tabName === 'lakhpati') {
     if (el.navTabMembers) el.navTabMembers.classList.remove('active');
-    if (el.navTabCutoff) el.navTabCutoff.classList.add('active');
+    if (el.navTabLakhpati) el.navTabLakhpati.classList.add('active');
     if (el.memberListView) el.memberListView.style.display = 'none';
     if (el.memberReasonView) el.memberReasonView.style.display = 'none';
-    if (el.shgCutoffListView) el.shgCutoffListView.style.display = 'block';
+    if (el.shgCutoffListView) el.shgCutoffListView.style.display = 'none';
     if (el.shgCutoffDetailView) el.shgCutoffDetailView.style.display = 'none';
+    if (el.lakhpatiListView) el.lakhpatiListView.style.display = 'block';
     if (el.exportAllCsvBtn) el.exportAllCsvBtn.style.display = 'none';
-    if (el.exportCutoffCsvBtn) el.exportCutoffCsvBtn.style.display = 'inline-flex';
-    renderCutoffTable();
+    updateLakhpatiExportVisibility();
+    renderLakhpatiTable();
+  } else {
+    updateLakhpatiExportVisibility();
   }
 }
 
 function bindEvents() {
   // Navigation Tabs
   if (el.navTabMembers) el.navTabMembers.addEventListener('click', () => switchTab('members'));
-  if (el.navTabCutoff) el.navTabCutoff.addEventListener('click', () => switchTab('cutoff'));
+  if (el.navTabLakhpati) el.navTabLakhpati.addEventListener('click', () => switchTab('lakhpati'));
+
+  // Lakhpati Didi Dropdown Events
+  if (el.selectLakhpatiGp) el.selectLakhpatiGp.addEventListener('change', (e) => {
+    state.selectedLakhpatiGp = e.target.value;
+    state.selectedLakhpatiVillage = '';
+    state.selectedLakhpatiShg = '';
+    state.lakhpatiShgCodeSearch = '';
+    if (el.lakhpatiShgCodeInput) el.lakhpatiShgCodeInput.value = '';
+    populateLakhpatiVillageDropdown();
+    resetLakhpatiShgDropdown();
+    renderLakhpatiTable();
+  });
+
+  if (el.selectLakhpatiVillage) el.selectLakhpatiVillage.addEventListener('change', (e) => {
+    state.selectedLakhpatiVillage = e.target.value;
+    state.selectedLakhpatiShg = '';
+    state.lakhpatiShgCodeSearch = '';
+    if (el.lakhpatiShgCodeInput) el.lakhpatiShgCodeInput.value = '';
+    populateLakhpatiShgDropdown();
+    renderLakhpatiTable();
+  });
+
+  if (el.selectLakhpatiShg) el.selectLakhpatiShg.addEventListener('change', (e) => {
+    state.selectedLakhpatiShg = e.target.value;
+    state.lakhpatiShgCodeSearch = '';
+    if (el.lakhpatiShgCodeInput) el.lakhpatiShgCodeInput.value = '';
+    renderLakhpatiTable();
+  });
+
+  // Lakhpati CSV Export
+  if (el.exportLakhpatiCsvBtn) el.exportLakhpatiCsvBtn.addEventListener('click', exportLakhpatiCsv);
+
+  // Lakhpati Reset / Home Button
+  if (el.lakhpatiResetBtn) el.lakhpatiResetBtn.addEventListener('click', resetLakhpatiSelection);
+
+  // Lakhpati SHG Code Search
+  if (el.lakhpatiShgCodeSearchBtn) {
+    el.lakhpatiShgCodeSearchBtn.addEventListener('click', handleLakhpatiShgCodeSearch);
+  }
+  if (el.lakhpatiShgCodeInput) {
+    el.lakhpatiShgCodeInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') handleLakhpatiShgCodeSearch();
+    });
+  }
 
   // Member GP Selection
   el.selectGp.addEventListener('change', (e) => {
@@ -1282,4 +1376,391 @@ function escapeHtml(str) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
+}
+
+// =============================================
+// LAKHPATI DIDI — INACTIVE MARKING FUNCTIONS
+// =============================================
+
+function populateLakhpatiGpDropdown() {
+  if (!state.lakhpatiHierarchy || !el.selectLakhpatiGp) return;
+  const gps = Object.keys(state.lakhpatiHierarchy).sort();
+  el.selectLakhpatiGp.innerHTML = '<option value="">-- Select GP --</option>' +
+    gps.map(gp => `<option value="${escapeHtml(gp)}">${escapeHtml(gp)}</option>`).join('');
+}
+
+function populateLakhpatiVillageDropdown() {
+  if (!state.selectedLakhpatiGp || !state.lakhpatiHierarchy || !state.lakhpatiHierarchy[state.selectedLakhpatiGp]) {
+    resetLakhpatiVillageDropdown();
+    return;
+  }
+  const gpObj = state.lakhpatiHierarchy[state.selectedLakhpatiGp];
+  const villagesObj = gpObj.villages || {};
+  const villages = Object.keys(villagesObj).sort();
+  el.selectLakhpatiVillage.innerHTML = '<option value="">-- Select Village --</option>' +
+    villages.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
+  el.selectLakhpatiVillage.disabled = false;
+}
+
+function resetLakhpatiVillageDropdown() {
+  if (el.selectLakhpatiVillage) {
+    el.selectLakhpatiVillage.innerHTML = '<option value="">-- Select Village --</option>';
+    el.selectLakhpatiVillage.disabled = true;
+  }
+}
+
+function populateLakhpatiShgDropdown() {
+  if (!state.selectedLakhpatiGp || !state.selectedLakhpatiVillage || !state.lakhpatiHierarchy) {
+    resetLakhpatiShgDropdown();
+    return;
+  }
+  const gpObj = state.lakhpatiHierarchy[state.selectedLakhpatiGp];
+  const villagesObj = gpObj ? (gpObj.villages || {}) : {};
+  const vilObj = villagesObj[state.selectedLakhpatiVillage];
+  if (!vilObj) { resetLakhpatiShgDropdown(); return; }
+
+  const shgsObj = vilObj.shgs || {};
+  const shgsList = Object.values(shgsObj).sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+
+  el.selectLakhpatiShg.innerHTML = '<option value="">-- Select SHG --</option>' +
+    shgsList.map(s => `<option value="${escapeHtml(s.code)}">${escapeHtml(s.name)} (${escapeHtml(s.code)})</option>`).join('');
+  el.selectLakhpatiShg.disabled = false;
+}
+
+function resetLakhpatiShgDropdown() {
+  if (el.selectLakhpatiShg) {
+    el.selectLakhpatiShg.innerHTML = '<option value="">-- Select SHG --</option>';
+    el.selectLakhpatiShg.disabled = true;
+  }
+}
+
+function resetLakhpatiSelection() {
+  state.selectedLakhpatiGp = '';
+  state.selectedLakhpatiVillage = '';
+  state.selectedLakhpatiShg = '';
+  state.lakhpatiShgCodeSearch = '';
+  if (el.selectLakhpatiGp) el.selectLakhpatiGp.value = '';
+  if (el.lakhpatiShgCodeInput) el.lakhpatiShgCodeInput.value = '';
+  resetLakhpatiVillageDropdown();
+  resetLakhpatiShgDropdown();
+  renderLakhpatiTable();
+}
+
+function updateLakhpatiExportVisibility() {
+  const isLakhpati = state.activeTab === 'lakhpati';
+  // User request: "Export Lakhpati csv should only show when in Home page i.e not while marking the status or drop downs"
+  // Home page = in Lakhpati tab, no GP selected, no Village selected, no SHG selected, and no search active.
+  const isHomePage = isLakhpati &&
+                     !state.selectedLakhpatiGp &&
+                     !state.selectedLakhpatiVillage &&
+                     !state.selectedLakhpatiShg &&
+                     (!state.lakhpatiShgCodeSearch || !state.lakhpatiShgCodeSearch.trim());
+
+  if (el.exportLakhpatiCsvBtn) {
+    el.exportLakhpatiCsvBtn.style.display = isHomePage ? 'inline-flex' : 'none';
+  }
+}
+
+function handleLakhpatiShgCodeSearch() {
+  const code = el.lakhpatiShgCodeInput ? el.lakhpatiShgCodeInput.value.trim() : '';
+  if (!code) {
+    showToast('⚠ Please enter an SHG Code');
+    return;
+  }
+
+  // Clear dropdown selections
+  state.selectedLakhpatiGp = '';
+  state.selectedLakhpatiVillage = '';
+  state.selectedLakhpatiShg = '';
+  if (el.selectLakhpatiGp) el.selectLakhpatiGp.value = '';
+  resetLakhpatiVillageDropdown();
+  resetLakhpatiShgDropdown();
+
+  // Set search mode
+  state.lakhpatiShgCodeSearch = code;
+  renderLakhpatiTable();
+}
+
+const AVATAR_PALETTES = [
+  { bg: '#e0e7ff', text: '#4338ca' }, // Indigo
+  { bg: '#dcfce7', text: '#15803d' }, // Emerald
+  { bg: '#fef3c7', text: '#b45309' }, // Amber
+  { bg: '#ffe4e6', text: '#be123c' }, // Rose
+  { bg: '#ede9fe', text: '#6d28d9' }, // Violet
+  { bg: '#cffafe', text: '#0e7490' }, // Cyan
+  { bg: '#fae8ff', text: '#a21caf' }, // Fuchsia
+  { bg: '#f1f5f9', text: '#334155' }  // Slate
+];
+
+function getAvatarStyle(name) {
+  let hash = 0;
+  for (let i = 0; i < (name || '').length; i++) {
+    hash = (hash << 5) - hash + name.charCodeAt(i);
+  }
+  const idx = Math.abs(hash) % AVATAR_PALETTES.length;
+  return AVATAR_PALETTES[idx];
+}
+
+function renderLakhpatiTable() {
+  if (!el.lakhpatiTableBody) return;
+
+  // Sync Export button visibility based on whether we are in Home page or marking/dropdowns
+  updateLakhpatiExportVisibility();
+
+  let list = state.lakhpatiMembers;
+  const hasShgSearch = state.lakhpatiShgCodeSearch && state.lakhpatiShgCodeSearch.trim();
+
+  if (hasShgSearch) {
+    // SHG code search mode — filter by partial/exact shgCode match
+    const q = state.lakhpatiShgCodeSearch.trim();
+    list = list.filter(m => m.shgCode.includes(q));
+  } else {
+    // Dropdown mode
+    if (state.selectedLakhpatiGp) {
+      list = list.filter(m => m.gp === state.selectedLakhpatiGp);
+    }
+    if (state.selectedLakhpatiVillage) {
+      list = list.filter(m => m.village === state.selectedLakhpatiVillage);
+    }
+    if (state.selectedLakhpatiShg) {
+      list = list.filter(m => m.shgCode === state.selectedLakhpatiShg);
+    }
+  }
+
+  state.lakhpatiCurrentList = list;
+
+  // Update stats with all members (block-level)
+  updateLakhpatiStats(state.lakhpatiMembers);
+
+  // Show stats only when no SHG is selected and no search active (Home page state)
+  const showStats = !state.selectedLakhpatiShg && !hasShgSearch && !state.selectedLakhpatiGp;
+  if (el.lakhpatiStatsSection) {
+    el.lakhpatiStatsSection.style.display = showStats ? 'block' : 'none';
+  }
+
+  // Require SHG selection or search before showing members
+  if (!state.selectedLakhpatiShg && !hasShgSearch) {
+    el.lakhpatiTableBody.innerHTML = `
+      <div class="lk-placeholder-card">
+        <div class="lk-placeholder-icon">
+          <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.5">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+        </div>
+        <h4>Select an SHG to view members</h4>
+        <p>Choose Gram Panchayat ➔ Village ➔ SHG above or search directly by SHG Code.</p>
+      </div>
+    `;
+    return;
+  }
+
+  if (list.length === 0) {
+    el.lakhpatiTableBody.innerHTML = `
+      <div class="lk-placeholder-card">
+        <div class="lk-placeholder-icon">
+          <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.5">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+        </div>
+        <h4>No members found</h4>
+        <p>No Lakhpati Didi members found for the selected criteria.</p>
+      </div>
+    `;
+    return;
+  }
+
+  let html = '';
+  list.forEach((m, idx) => {
+    const saved = state.savedLakhpatiInactive[m.pldCode];
+    const isMarked = saved && saved.needInactive === true;
+    const cardClass = isMarked ? 'lk-member-card lk-card-marked' : 'lk-member-card';
+    const initial = (m.pldName || 'M').trim().charAt(0).toUpperCase();
+    const avatar = getAvatarStyle(m.pldName);
+
+    html += `
+      <div class="${cardClass}" id="card-${escapeHtml(m.pldCode)}">
+        <!-- Card Header: Avatar, Name, ID & Status Badge -->
+        <div class="lk-card-header">
+          <div class="lk-avatar" style="background: ${avatar.bg}; color: ${avatar.text};">
+            ${initial}
+          </div>
+          <div class="lk-header-info">
+            <div class="lk-member-name">${escapeHtml(m.pldName)}</div>
+            <div class="lk-member-id">
+              <span class="lk-id-num">ID: ${escapeHtml(m.pldCode)}</span>
+            </div>
+          </div>
+          <div class="lk-status-badge ${isMarked ? 'marked' : 'active'}">
+            <span class="lk-badge-dot"></span>
+            <span class="lk-badge-text">${isMarked ? 'Need to Inactive' : 'Active'}</span>
+          </div>
+        </div>
+
+        <!-- Card Body: SHG & Relation details -->
+        <div class="lk-card-body">
+          <div class="lk-detail-row">
+            <svg class="lk-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+            <span class="lk-detail-label">SHG:</span>
+            <span class="lk-detail-val"><strong>${escapeHtml(m.shgName)}</strong> <span class="lk-shg-code">(${escapeHtml(m.shgCode)})</span></span>
+          </div>
+          <div class="lk-detail-row">
+            <svg class="lk-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+            <span class="lk-detail-label">Father/Spouse:</span>
+            <span class="lk-detail-val">${escapeHtml(m.fatherSpouse || '—')}</span>
+          </div>
+        </div>
+
+        <!-- Card Tags -->
+        <div class="lk-card-tags">
+          <span class="lk-tag lk-tag-cat">Category: ${escapeHtml(m.socialCategory || 'GEN')}</span>
+          <span class="lk-tag">${escapeHtml(m.village)}</span>
+          <span class="lk-tag">${escapeHtml(m.gp)}</span>
+          ${m.lakhpatiDidi === 'Yes' ? '<span class="lk-tag lk-tag-gold">🏆 Lakhpati</span>' : ''}
+        </div>
+
+        <!-- Dedicated "Need to Inactive" Action Switch Bar -->
+        <div class="lk-toggle-bar ${isMarked ? 'checked' : ''}" onclick="handleLakhpatiToggle('${escapeHtml(m.pldCode)}', this)" role="button" tabindex="0" title="${isMarked ? 'Marked as Need to Inactive. Tap to restore Active' : 'Tap to mark as Need to Inactive'}">
+          <div class="lk-toggle-text-wrap">
+            <div class="lk-toggle-title">Need to Inactive</div>
+            <div class="lk-toggle-subtitle">${isMarked ? 'Marked for inactivation' : 'Tap switch to mark inactive'}</div>
+          </div>
+          <div class="lk-switch-wrapper">
+            <span class="lk-switch-state-text">${isMarked ? 'YES' : 'NO'}</span>
+            <div class="lk-real-switch">
+              <div class="lk-switch-thumb"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  });
+
+  el.lakhpatiTableBody.innerHTML = html;
+}
+
+function updateLakhpatiStats(list) {
+  const total = list.length;
+  const marked = list.filter(m => {
+    const saved = state.savedLakhpatiInactive[m.pldCode];
+    return saved && saved.needInactive === true;
+  }).length;
+  const remaining = total - marked;
+
+  if (el.statLakhpatiTotal) el.statLakhpatiTotal.textContent = total.toLocaleString();
+  if (el.statLakhpatiMarked) el.statLakhpatiMarked.textContent = marked.toLocaleString();
+  if (el.statLakhpatiRemaining) el.statLakhpatiRemaining.textContent = remaining.toLocaleString();
+}
+
+async function handleLakhpatiToggle(pldCode, triggerEl) {
+  const current = state.savedLakhpatiInactive[pldCode];
+  const newVal = !(current && current.needInactive);
+
+  state.savedLakhpatiInactive[pldCode] = {
+    needInactive: newVal,
+    updatedAt: new Date().toISOString()
+  };
+
+  // Instant UI feedback on the card
+  if (triggerEl) {
+    const card = triggerEl.closest('.lk-member-card');
+    if (card) {
+      const statusBadge = card.querySelector('.lk-status-badge');
+      const badgeText = card.querySelector('.lk-badge-text');
+      const toggleBar = card.querySelector('.lk-toggle-bar');
+      const toggleSubtitle = card.querySelector('.lk-toggle-subtitle');
+      const switchStateText = card.querySelector('.lk-switch-state-text');
+
+      if (newVal) {
+        card.classList.add('lk-card-marked');
+        if (statusBadge) statusBadge.className = 'lk-status-badge marked';
+        if (badgeText) badgeText.textContent = 'Need to Inactive';
+        if (toggleBar) toggleBar.classList.add('checked');
+        if (toggleSubtitle) toggleSubtitle.textContent = 'Marked for inactivation';
+        if (switchStateText) switchStateText.textContent = 'YES';
+      } else {
+        card.classList.remove('lk-card-marked');
+        if (statusBadge) statusBadge.className = 'lk-status-badge active';
+        if (badgeText) badgeText.textContent = 'Active';
+        if (toggleBar) toggleBar.classList.remove('checked');
+        if (toggleSubtitle) toggleSubtitle.textContent = 'Tap switch to mark inactive';
+        if (switchStateText) switchStateText.textContent = 'NO';
+      }
+    }
+  }
+
+  // Update stats
+  updateLakhpatiStats(state.lakhpatiMembers);
+
+  // POST to server
+  try {
+    const payload = { [pldCode]: state.savedLakhpatiInactive[pldCode] };
+    const res = await fetch('/api/lakhpati', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (res.ok) {
+      showToast(newVal ? '⚠ Marked as Need to Inactive' : '✓ Restored to Active');
+    }
+  } catch (err) {
+    console.error('Error saving lakhpati toggle:', err);
+    showToast('⚠ Save failed — please retry');
+  }
+}
+
+function exportLakhpatiCsv() {
+  const members = state.lakhpatiMembers;
+  if (!members.length) return;
+
+  const header = ['Sl No', 'Gram Panchayat', 'Village', 'SHG Name', 'SHG Code', 'PLD Name', 'PLD Code', 'Mobile', 'Father/Spouse', 'Social Category', 'Active Status', 'Need to Inactive', 'Marked At'];
+  const rows = members.map((m, idx) => {
+    const saved = state.savedLakhpatiInactive[m.pldCode];
+    const isMarked = saved && saved.needInactive === true;
+    return [
+      idx + 1,
+      csvEscape(m.gp),
+      csvEscape(m.village),
+      csvEscape(m.shgName),
+      csvEscape(m.shgCode),
+      csvEscape(m.pldName),
+      csvEscape(m.pldCode),
+      csvEscape(m.mobile),
+      csvEscape(m.fatherSpouse),
+      csvEscape(m.socialCategory),
+      csvEscape(m.activeStatus),
+      isMarked ? '"Yes"' : '"No"',
+      isMarked ? csvEscape(saved.updatedAt) : '""'
+    ].join(',');
+  });
+
+  const csvContent = '\uFEFF' + header.map(h => csvEscape(h)).join(',') + '\n' + rows.join('\n');
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const now = new Date();
+  const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+  const filename = `Lakhpati_Didi_Inactive_Marking_${dateStr}.csv`;
+
+  const link = document.createElement('a');
+  link.setAttribute('href', url);
+  link.setAttribute('download', filename);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  const markedCount = members.filter(m => {
+    const s = state.savedLakhpatiInactive[m.pldCode];
+    return s && s.needInactive;
+  }).length;
+  showToast(`✓ Exported ${members.length} members (${markedCount} marked inactive)`);
 }

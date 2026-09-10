@@ -7,3 +7,4 @@ data/shg_cutoff_responses.json
 
 # Utility scripts
 restore_reasons.js
+data/lakhpati_inactive.json

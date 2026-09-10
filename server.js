@@ -10,6 +10,8 @@ const REASONS_FILE = path.join(DATA_DIR, 'member_reasons.json');
 const REASONS_SEED  = path.join(DATA_DIR, 'seed_reasons.json');   // tracked in git
 const CUTOFF_FILE   = path.join(DATA_DIR, 'shg_cutoff_responses.json');
 const CUTOFF_SEED   = path.join(DATA_DIR, 'seed_cutoff.json');    // tracked in git
+const LAKHPATI_FILE = path.join(DATA_DIR, 'lakhpati_inactive.json');
+const LAKHPATI_SEED = path.join(DATA_DIR, 'seed_lakhpati_inactive.json'); // tracked in git
 
 // Ensure data dir exists on fresh Render deploy
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -30,6 +32,7 @@ let membersData = null;
 let hierarchyData = null;
 let savedReasons = {};
 let savedCutoff = {};
+let savedLakhpati = {};
 
 function loadData() {
   const membersFile = path.join(PUBLIC_DIR, 'members.json');
@@ -85,6 +88,22 @@ function loadData() {
       savedCutoff = {};
     }
   }
+
+  // Load lakhpati inactive markings: runtime file first, fall back to git-tracked seed
+  const lakhpatiSrc = fs.existsSync(LAKHPATI_FILE) ? LAKHPATI_FILE
+                    : fs.existsSync(LAKHPATI_SEED)  ? LAKHPATI_SEED
+                    : null;
+  if (lakhpatiSrc) {
+    try {
+      savedLakhpati = JSON.parse(fs.readFileSync(lakhpatiSrc, 'utf-8'));
+      console.log(`Loaded ${Object.keys(savedLakhpati).length} lakhpati inactive entries from ${path.basename(lakhpatiSrc)}`);
+      if (lakhpatiSrc === LAKHPATI_SEED && !fs.existsSync(LAKHPATI_FILE)) {
+        fs.writeFileSync(LAKHPATI_FILE, JSON.stringify(savedLakhpati));
+      }
+    } catch (e) {
+      savedLakhpati = {};
+    }
+  }
 }
 
 loadData();
@@ -128,6 +147,7 @@ const server = http.createServer((req, res) => {
           const payload = JSON.parse(body);
           savedReasons = { ...savedReasons, ...payload };
           fs.writeFileSync(REASONS_FILE, JSON.stringify(savedReasons, null, 2), 'utf-8');
+          try { fs.writeFileSync(REASONS_SEED, JSON.stringify(savedReasons, null, 2), 'utf-8'); } catch (e) {}
           res.writeHead(200, { 'Content-Type': 'application/json' });
           return res.end(JSON.stringify({ success: true, count: Object.keys(savedReasons).length }));
         } catch (err) {
@@ -153,8 +173,93 @@ const server = http.createServer((req, res) => {
           const payload = JSON.parse(body);
           savedCutoff = { ...savedCutoff, ...payload };
           fs.writeFileSync(CUTOFF_FILE, JSON.stringify(savedCutoff, null, 2), 'utf-8');
+          try { fs.writeFileSync(CUTOFF_SEED, JSON.stringify(savedCutoff, null, 2), 'utf-8'); } catch (e) {}
           res.writeHead(200, { 'Content-Type': 'application/json' });
           return res.end(JSON.stringify({ success: true, count: Object.keys(savedCutoff).length }));
+        } catch (err) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({ error: 'Invalid JSON payload' }));
+        }
+      });
+      return;
+    }
+  }
+
+  if (pathname === '/api/lakhpati') {
+    if (req.method === 'GET') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify(savedLakhpati));
+    }
+
+    if (req.method === 'POST') {
+      let body = '';
+      req.on('data', chunk => body += chunk);
+      req.on('end', () => {
+        try {
+          const payload = JSON.parse(body);
+          savedLakhpati = { ...savedLakhpati, ...payload };
+          fs.writeFileSync(LAKHPATI_FILE, JSON.stringify(savedLakhpati, null, 2), 'utf-8');
+          try { fs.writeFileSync(LAKHPATI_SEED, JSON.stringify(savedLakhpati, null, 2), 'utf-8'); } catch (e) {}
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({ success: true, count: Object.keys(savedLakhpati).length }));
+        } catch (err) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({ error: 'Invalid JSON payload' }));
+        }
+      });
+      return;
+    }
+  }
+
+  // Backup & Restore API for Render persistence & local sync
+  if (pathname === '/api/backup') {
+    if (req.method === 'GET') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({
+        reasons: savedReasons,
+        cutoff: savedCutoff,
+        lakhpati: savedLakhpati,
+        counts: {
+          reasons: Object.keys(savedReasons).length,
+          cutoff: Object.keys(savedCutoff).length,
+          lakhpati: Object.keys(savedLakhpati).length
+        },
+        exportedAt: new Date().toISOString()
+      }, null, 2));
+    }
+  }
+
+  if (pathname === '/api/restore') {
+    if (req.method === 'POST') {
+      let body = '';
+      req.on('data', chunk => body += chunk);
+      req.on('end', () => {
+        try {
+          const payload = JSON.parse(body);
+          if (payload.reasons) {
+            savedReasons = { ...savedReasons, ...payload.reasons };
+            fs.writeFileSync(REASONS_FILE, JSON.stringify(savedReasons, null, 2), 'utf-8');
+            try { fs.writeFileSync(REASONS_SEED, JSON.stringify(savedReasons, null, 2), 'utf-8'); } catch (e) {}
+          }
+          if (payload.cutoff) {
+            savedCutoff = { ...savedCutoff, ...payload.cutoff };
+            fs.writeFileSync(CUTOFF_FILE, JSON.stringify(savedCutoff, null, 2), 'utf-8');
+            try { fs.writeFileSync(CUTOFF_SEED, JSON.stringify(savedCutoff, null, 2), 'utf-8'); } catch (e) {}
+          }
+          if (payload.lakhpati) {
+            savedLakhpati = { ...savedLakhpati, ...payload.lakhpati };
+            fs.writeFileSync(LAKHPATI_FILE, JSON.stringify(savedLakhpati, null, 2), 'utf-8');
+            try { fs.writeFileSync(LAKHPATI_SEED, JSON.stringify(savedLakhpati, null, 2), 'utf-8'); } catch (e) {}
+          }
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({
+            success: true,
+            counts: {
+              reasons: Object.keys(savedReasons).length,
+              cutoff: Object.keys(savedCutoff).length,
+              lakhpati: Object.keys(savedLakhpati).length
+            }
+          }));
         } catch (err) {
           res.writeHead(400, { 'Content-Type': 'application/json' });
           return res.end(JSON.stringify({ error: 'Invalid JSON payload' }));
