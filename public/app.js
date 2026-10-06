@@ -921,7 +921,7 @@ async function clearCurrentReason() {
 // Aadhaar status of members whose eKYC is still pending. "VERIFIED" means the Aadhaar
 // number is verified in lokOS — not that eKYC is done — so it is not shown as green/success.
 const AADHAAR_STATUSES = [
-  { key: 'VERIFIED', label: 'Aadhaar Verified', tone: 'blue', icon: '✓', hint: 'Aadhaar is verified in lokOS — eKYC can be done now' },
+  { key: 'VERIFIED', label: 'Aadhaar Available', tone: 'blue', icon: '→', hint: 'Aadhaar is in lokOS — eKYC can be done now' },
   { key: 'NOT AVAILABLE', label: 'Aadhaar Not Available', tone: 'amber', icon: '!', hint: 'No Aadhaar in lokOS — collect and enter Aadhaar first' },
   { key: 'NOT VERIFIED', label: 'Aadhaar Not Verified', tone: 'red', icon: '✕', hint: 'Aadhaar entered but not verified — check the number' },
   { key: 'OTHER', label: 'Not Recorded', tone: 'gray', icon: '?', hint: 'Aadhaar status missing in the data' }
