@@ -1081,33 +1081,28 @@ function renderDashEbkTable() {
     return;
   }
 
-  const STAGE_LABEL = { not_started: 'Not started', in_progress: 'In progress', completed: '✓ Completed', nothing: 'Nothing to tag' };
+  // Kept deliberately minimal: who, how far, and what's left
   el.dashEbkList.innerHTML = visible.map(g => {
     const pct = percentOf(g.tagged, g.need);
     const stage = ebkStage(g);
     const unassigned = !g.id && g.name === 'Not Assigned';
     const avatar = unassigned ? { bg: '#f1f5f9', text: '#64748b' } : getAvatarStyle(g.name);
     return `
-      <div class="ebk-card ${unassigned ? 'ebk-unassigned' : ''}" title="${escapeHtml(g.name)}: ${fmt(g.tagged)} of ${fmt(g.need)} tagged">
+      <div class="ebk-card stage-${stage} ${unassigned ? 'ebk-unassigned' : ''}" title="${escapeHtml(g.name)}: ${fmt(g.tagged)} of ${fmt(g.need)} tagged">
         <div class="ebk-card-top">
           <span class="ebk-avatar" style="background:${avatar.bg}; color:${avatar.text};">${unassigned ? '?' : escapeHtml(g.name.trim().charAt(0).toUpperCase())}</span>
           <div class="ebk-ident">
             <div class="ebk-name">${escapeHtml(g.name)}</div>
-            <div class="ebk-id ${g.id ? '' : 'ebk-id-plain'}">${g.id ? escapeHtml(g.id) : 'No bookkeeper in master data'}</div>
+            ${g.id ? `<div class="ebk-id">${escapeHtml(g.id)}</div>` : ''}
           </div>
-          <span class="ebk-stage stage-${stage}">${STAGE_LABEL[stage]}</span>
+          <span class="ebk-pct">${g.need ? `${pct}%` : '—'}</span>
         </div>
-        ${g.need ? `
-        <div class="ebk-progress">
-          <div class="ebk-track"><div class="ebk-fill" style="width:${pct}%;"></div></div>
-          <span class="ebk-pct">${pct}%</span>
-        </div>` : ''}
+        <div class="ebk-track"><div class="ebk-fill" style="width:${pct}%;"></div></div>
         <div class="ebk-meta">
-          <span><strong>${fmt(g.tagged)}</strong> of <strong>${fmt(g.need)}</strong> tagged</span>
-          <span class="ebk-dot">·</span>
-          <span class="${pendingOf(g) ? 'ebk-pending' : ''}"><strong>${fmt(pendingOf(g))}</strong> pending</span>
-          <span class="ebk-dot">·</span>
-          <span>${fmt(g.members)} members</span>
+          ${g.need
+            ? `<span><strong>${fmt(g.tagged)}</strong> / ${fmt(g.need)} tagged</span>
+               <span class="ebk-pending">${pendingOf(g) ? `<strong>${fmt(pendingOf(g))}</strong> pending` : '✓ Done'}</span>`
+            : '<span>Nothing to tag</span>'}
         </div>
       </div>
     `;
