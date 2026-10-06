@@ -95,11 +95,14 @@ const el = {
   detMemberName: document.getElementById('detMemberName'),
   detMemberCode: document.getElementById('detMemberCode'),
   detEkycVal: document.getElementById('detEkycVal'),
+  detAadhaarVal: document.getElementById('detAadhaarVal'),
   detPhoneVal: document.getElementById('detPhoneVal'),
   detEbkVal: document.getElementById('detEbkVal'),
 
   // Member Reason Form & Verified Notice
   verifiedMemberNotice: document.getElementById('verifiedMemberNotice'),
+  noCodeMemberNotice: document.getElementById('noCodeMemberNotice'),
+  noCodeApprovalText: document.getElementById('noCodeApprovalText'),
   reasonFormCard: document.getElementById('reasonFormCard'),
   formSuccessAlert: document.getElementById('formSuccessAlert'),
   formSuccessAlertText: document.getElementById('formSuccessAlertText'),
@@ -521,6 +524,15 @@ function updateSelectorFooter() {
   }
 }
 
+// Reasons are keyed by member code; members without a generated code can't have one
+function hasMemberCode(m) {
+  return /^\d{12}$/.test(m.mc || '');
+}
+
+function getSavedReason(m) {
+  return hasMemberCode(m) ? state.savedReasons[m.mc] : undefined;
+}
+
 function renderMembersTable() {
   let list = state.members.filter(m => m.st === 'ACTIVE');
 
@@ -598,11 +610,15 @@ function renderMembersTable() {
       : '<span class="status-badge badge-danger">✕ No</span>';
 
     const isFullyVerified = (isEkycDone && isPhoneDone);
-    const saved = state.savedReasons[m.mc];
+    const hasCode = hasMemberCode(m);
+    const saved = getSavedReason(m);
+    const canRecord = hasCode && !isFullyVerified;
     let reasonBadgeHtml = '';
 
     if (isFullyVerified) {
       reasonBadgeHtml = '<span class="status-badge badge-success">Fully Verified</span>';
+    } else if (!hasCode) {
+      reasonBadgeHtml = '<span class="status-badge badge-neutral">No Member Code</span>';
     } else if (saved && saved.reason) {
       const displayReason = saved.reason === 'Other' && saved.remarks
         ? `Other: ${escapeHtml(saved.remarks)}`
@@ -618,7 +634,7 @@ function renderMembersTable() {
         <td data-label="Member">
           <div class="member-name-cell">
             <span class="m-name">${escapeHtml(m.mn)}</span>
-            <span class="m-code">(${escapeHtml(m.mc)})</span>
+            <span class="m-code">(${hasCode ? escapeHtml(m.mc) : 'No Code'})</span>
           </div>
         </td>
         <td data-label="SHG">
@@ -631,8 +647,8 @@ function renderMembersTable() {
         <td data-label="Phone" class="text-center">${phoneBadge}</td>
         <td data-label="Reason" class="text-center">${reasonBadgeHtml}</td>
         <td data-label="Action" class="text-center">
-          <button class="btn btn-sm ${isFullyVerified ? 'btn-outline' : 'btn-primary'}">
-            ${isFullyVerified ? 'View' : 'Record Reason'}
+          <button class="btn btn-sm ${canRecord ? 'btn-primary' : 'btn-outline'}">
+            ${canRecord ? 'Record Reason' : 'View'}
           </button>
         </td>
       </tr>
@@ -673,7 +689,8 @@ function renderMemberDetail() {
   el.nextMemberBtn.disabled = (state.activeMemberIndex >= state.currentList.length - 1);
 
   el.detMemberName.textContent = m.mn;
-  el.detMemberCode.textContent = `Member Code: ${m.mc}`;
+  const hasCode = hasMemberCode(m);
+  el.detMemberCode.textContent = hasCode ? `Member Code: ${m.mc}` : 'Member Code: Not generated';
   el.detGpTag.textContent = `GP: ${m.gp}`;
   el.detVillageTag.textContent = `Village: ${m.vil}`;
   el.detShgTag.textContent = `SHG: ${m.sn}`;
@@ -687,18 +704,26 @@ function renderMemberDetail() {
   el.detPhoneVal.textContent = isPhoneDone ? 'Yes (TRUE)' : 'No (FALSE)';
   el.detPhoneVal.style.color = isPhoneDone ? 'var(--success)' : 'var(--danger)';
 
-  el.detEbkVal.textContent = m.ebkn ? `${m.ebkn} (${m.ebkm})` : 'Not Assigned';
+  const isAadhaarVerified = (m.akyc || '').toUpperCase() === 'VERIFIED';
+  el.detAadhaarVal.textContent = m.akyc || '-';
+  el.detAadhaarVal.style.color = isAadhaarVerified ? 'var(--success)' : 'var(--danger)';
+
+  const hasValue = v => v && v !== '-';
+  el.detEbkVal.textContent = !hasValue(m.ebkn) ? 'Not Assigned'
+    : hasValue(m.ebkm) ? `${m.ebkn} (${m.ebkm})` : m.ebkn;
 
   const isFullyVerified = (isEkycDone && isPhoneDone);
 
-  if (isFullyVerified) {
-    el.verifiedMemberNotice.style.display = 'block';
+  el.verifiedMemberNotice.style.display = isFullyVerified ? 'block' : 'none';
+  el.noCodeMemberNotice.style.display = (!isFullyVerified && !hasCode) ? 'block' : 'none';
+  el.noCodeApprovalText.textContent = m.appst || '-';
+
+  if (isFullyVerified || !hasCode) {
     el.reasonFormCard.style.display = 'none';
   } else {
-    el.verifiedMemberNotice.style.display = 'none';
     el.reasonFormCard.style.display = 'block';
 
-    const saved = state.savedReasons[m.mc];
+    const saved = getSavedReason(m);
     if (saved && saved.reason) {
       el.detailReasonSelect.value = saved.reason;
       if (saved.reason === 'Other') {
@@ -746,7 +771,7 @@ function showNextMember() {
 
 async function saveCurrentReason(autoAdvance = true) {
   const m = state.currentList[state.activeMemberIndex];
-  if (!m) return;
+  if (!m || !hasMemberCode(m)) return;
 
   hideFormAlerts();
   el.detailReasonSelect.classList.remove('input-error');
@@ -807,7 +832,7 @@ async function saveCurrentReason(autoAdvance = true) {
 
 async function clearCurrentReason() {
   const m = state.currentList[state.activeMemberIndex];
-  if (!m) return;
+  if (!m || !hasMemberCode(m)) return;
 
   hideFormAlerts();
   el.detailReasonSelect.classList.remove('input-error');
@@ -1324,7 +1349,10 @@ function exportAllBlockCsv() {
     'eBK ID',
     'eBK Name',
     'eBK Mobile No.',
-    'Status'
+    'Status',
+    'Aadhaar KYC',
+    'Approval Status',
+    'In Latest Master Data'
   ];
 
   const rows = activeMembers.map(m => {
@@ -1332,7 +1360,7 @@ function exportAllBlockCsv() {
     const isPhoneYes = m.pvf;
     const isFullyVerified = (isEkycYes && isPhoneYes);
     const actionNeeded = isFullyVerified ? 'NO' : 'YES';
-    const saved = state.savedReasons[m.mc] || {};
+    const saved = getSavedReason(m) || {};
 
     const reasonValue = isFullyVerified ? '' : (saved.reason || '');
     const remarksValue = isFullyVerified ? '' : (saved.remarks || '');
@@ -1354,7 +1382,10 @@ function exportAllBlockCsv() {
       csvEscape(m.ebkid),
       csvEscape(m.ebkn),
       csvEscape(m.ebkm),
-      csvEscape(m.st)
+      csvEscape(m.st),
+      csvEscape(m.akyc),
+      csvEscape(m.appst),
+      m.prev ? '"No (kept: reason recorded)"' : '"Yes"'
     ];
   });
 

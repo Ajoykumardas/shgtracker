@@ -155,6 +155,10 @@
             <span class="stat-value" id="detEkycVal">No</span>
           </div>
           <div class="status-overview-card">
+            <span class="stat-label">AADHAAR KYC</span>
+            <span class="stat-value" id="detAadhaarVal">-</span>
+          </div>
+          <div class="status-overview-card">
             <span class="stat-label">PHONE VERIFIED</span>
             <span class="stat-value" id="detPhoneVal">No (FALSE)</span>
           </div>
@@ -172,6 +176,17 @@
           <div>
             <h4>Fully Verified Member</h4>
             <p>Both eKYC and Phone verification are completed for this member. No action or non-completion reason is required.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- No Member Code Notice (reasons are keyed by member code, so none can be recorded) -->
+      <section class="detail-card warning-banner-card" id="noCodeMemberNotice" style="display:none;">
+        <div class="success-banner-content">
+          <div class="success-icon-wrap warning-icon-wrap">!</div>
+          <div>
+            <h4>Member Code Not Generated</h4>
+            <p>This member does not have a member code yet (approval status: <strong id="noCodeApprovalText">-</strong>). A reason can be recorded once the member code is generated.</p>
           </div>
         </div>
       </section>
