@@ -22,7 +22,7 @@ const CUTOFF_DATES = [
 ];
 
 const state = {
-  activeTab: 'lakhpati', // 'lakhpati' default | 'members' | 'cutoff'
+  activeTab: 'members', // 'members' default | 'lakhpati' | 'cutoff'
   hierarchy: null,
   members: [],
   savedReasons: {},     // { [memberCode]: { reason: string, remarks: string, updatedAt: string } }
@@ -257,8 +257,9 @@ async function loadData() {
       state.savedLakhpatiInactive = await lakhpatiApiRes.json();
     }
 
-    if (state.activeTab === 'lakhpati') {
-      switchTab('lakhpati');
+    // Render the opening tab once all data (incl. saved reasons) has arrived
+    if (state.activeTab === 'members' || state.activeTab === 'lakhpati') {
+      switchTab(state.activeTab);
     }
   } catch (err) {
     console.error('Error loading data:', err);

@@ -18,15 +18,15 @@
       </div>
       <div class="header-right-group">
         <div class="header-nav-tabs">
-          <button id="navTabLakhpati" class="nav-tab active">
+          <button id="navTabLakhpati" class="nav-tab">
             🏆 Lakhpati Didi
           </button>
-          <button id="navTabMembers" class="nav-tab">
+          <button id="navTabMembers" class="nav-tab active">
             👥 eKYC & Phone Verification
           </button>
         </div>
         <div class="header-actions">
-          <button id="exportAllCsvBtn" class="btn btn-primary" style="display:none;" title="Export All Block Members & Recorded Responses to CSV">
+          <button id="exportAllCsvBtn" class="btn btn-primary" title="Export All Block Members & Recorded Responses to CSV">
             <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
               <polyline points="7 10 12 15 17 10"></polyline>
@@ -35,7 +35,7 @@
             Export Members CSV
           </button>
 
-          <button id="exportLakhpatiCsvBtn" class="btn btn-primary" title="Export Lakhpati Didi Members with Inactive Markings">
+          <button id="exportLakhpatiCsvBtn" class="btn btn-primary" style="display:none;" title="Export Lakhpati Didi Members with Inactive Markings">
             <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
               <polyline points="7 10 12 15 17 10"></polyline>
@@ -50,7 +50,7 @@
 
   <main class="main-container">
     <!-- PAGE 1: SHG & Member Selection View -->
-    <div id="memberListView" class="app-view" style="display:none;">
+    <div id="memberListView" class="app-view" style="display:block;">
       <!-- Step Selector Card: GP -> Village -> SHG -->
       <section class="selector-card">
         <div class="selector-grid">
@@ -89,7 +89,7 @@
         </div>
 
         <section class="stats-card">
-          <div class="cutoff-stats-grid" id="dashKpis"></div>
+          <div class="cutoff-stats-grid" id="dashKpis"><p class="dash-empty">Loading dashboard…</p></div>
         </section>
 
         <div class="dash-grid">
@@ -584,7 +584,7 @@
     </div>
 
     <!-- PAGE 5: Lakhpati Didi Inactive Marking View -->
-    <div id="lakhpatiListView" class="app-view" style="display:block;">
+    <div id="lakhpatiListView" class="app-view" style="display:none;">
       <section class="selector-card">
         <div class="cutoff-header-title">
           <h3>🏆 Lakhpati Didi — Inactive Marking</h3>
