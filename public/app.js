@@ -151,7 +151,6 @@ const el = {
   detailReasonSelect: document.getElementById('detailReasonSelect'),
   legacyReasonNotice: document.getElementById('legacyReasonNotice'),
   legacyReasonText: document.getElementById('legacyReasonText'),
-  saveReasonBtn: document.getElementById('saveReasonBtn'),
   saveOnlyBtn: document.getElementById('saveOnlyBtn'),
   clearReasonBtn: document.getElementById('clearReasonBtn'),
   savedTimestampNotice: document.getElementById('savedTimestampNotice'),
@@ -455,8 +454,7 @@ function bindEvents() {
   });
 
   // Form buttons
-  el.saveReasonBtn.addEventListener('click', () => saveCurrentReason(true));
-  el.saveOnlyBtn.addEventListener('click', () => saveCurrentReason(false));
+  el.saveOnlyBtn.addEventListener('click', saveCurrentReason);
   el.clearReasonBtn.addEventListener('click', clearCurrentReason);
 
   // Cutoff View Events
@@ -829,7 +827,8 @@ function showNextMember() {
   }
 }
 
-async function saveCurrentReason(autoAdvance = true) {
+// Saves and stays on the same member; moving on is always the user's choice (Next »)
+async function saveCurrentReason() {
   const m = state.currentList[state.activeMemberIndex];
   const key = m && getReasonKey(m);
   if (!key) return;
@@ -853,7 +852,7 @@ async function saveCurrentReason(autoAdvance = true) {
     }
   };
 
-  const formButtons = [el.saveReasonBtn, el.saveOnlyBtn, el.clearReasonBtn];
+  const formButtons = [el.saveOnlyBtn, el.clearReasonBtn];
   setButtonsBusy(formButtons, true);
   try {
     await postJson('/api/reasons', payload);
@@ -868,19 +867,14 @@ async function saveCurrentReason(autoAdvance = true) {
 
   // Only record locally once the server has confirmed
   state.savedReasons[key] = payload[key];
-
-  showFormSuccess('Reason recorded successfully!');
   showToast('✓ Response saved');
+  if (state.currentList[state.activeMemberIndex] !== m) return; // user moved on while saving
 
-  setTimeout(() => {
-    hideFormAlerts();
-    if (state.currentList[state.activeMemberIndex] !== m) return; // user moved on while saving
-    if (autoAdvance && state.activeMemberIndex < state.currentList.length - 1) {
-      showNextMember();
-    } else {
-      renderMemberDetail();
-    }
-  }, 700);
+  // Stay on this member; the success banner remains until they navigate away
+  showFormSuccess('Reason recorded successfully!');
+  el.legacyReasonNotice.style.display = 'none';
+  el.savedTimestampText.textContent = new Date(payload[key].updatedAt).toLocaleString();
+  el.savedTimestampNotice.style.display = 'block';
 }
 
 async function clearCurrentReason() {
@@ -892,7 +886,7 @@ async function clearCurrentReason() {
   el.detailReasonSelect.classList.remove('input-error');
 
   const payload = { [key]: { reason: '', remarks: '', updatedAt: new Date().toISOString() } };
-  const formButtons = [el.saveReasonBtn, el.saveOnlyBtn, el.clearReasonBtn];
+  const formButtons = [el.saveOnlyBtn, el.clearReasonBtn];
   setButtonsBusy(formButtons, true);
   try {
     await postJson('/api/reasons', payload);
