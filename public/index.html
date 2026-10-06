@@ -94,10 +94,12 @@
 
         <section class="dash-card">
           <div class="dash-card-head">
-            <h4>Aadhaar KYC Status</h4>
-            <span class="dash-card-sub" id="dashAadhaarSub"></span>
+            <div>
+              <h4>Aadhaar Status — eKYC Pending Members</h4>
+              <span class="dash-card-sub" id="dashAadhaarSub"></span>
+            </div>
           </div>
-          <div id="dashAadhaar"></div>
+          <div id="dashAadhaar" class="aadhaar-cards"></div>
         </section>
 
         <section class="dash-card">
@@ -115,21 +117,8 @@
               </select>
             </div>
           </div>
-          <div class="table-container dash-table-wrap">
-            <table class="data-table dash-ebk-table">
-              <thead>
-                <tr>
-                  <th>eBK (Bookkeeper)</th>
-                  <th class="text-center dash-col-opt">Members</th>
-                  <th class="text-center dash-col-opt-sm">Need Reason</th>
-                  <th class="text-center dash-col-opt-sm">Tagged</th>
-                  <th class="text-center dash-col-opt">Pending</th>
-                  <th class="dash-col-progress">Progress</th>
-                </tr>
-              </thead>
-              <tbody id="dashEbkBody"></tbody>
-            </table>
-          </div>
+          <div class="ebk-filter-chips" id="dashEbkFilters" role="tablist" aria-label="Filter bookkeepers by progress"></div>
+          <div class="ebk-list" id="dashEbkList"></div>
           <div class="dash-ebk-footer" id="dashEbkFooter"></div>
         </section>
       </div>

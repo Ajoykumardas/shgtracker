@@ -56,6 +56,7 @@ const state = {
   // eKYC dashboard eBK table controls
   dashEbkQuery: '',
   dashEbkSort: 'pending',
+  dashEbkFilter: 'all',   // 'all' | 'not_started' | 'in_progress' | 'completed'
   dashEbkShowAll: false,
 
   // Cutoff state
@@ -113,7 +114,8 @@ const el = {
   dashAadhaarSub: document.getElementById('dashAadhaarSub'),
   dashEbkSearch: document.getElementById('dashEbkSearch'),
   dashEbkSort: document.getElementById('dashEbkSort'),
-  dashEbkBody: document.getElementById('dashEbkBody'),
+  dashEbkFilters: document.getElementById('dashEbkFilters'),
+  dashEbkList: document.getElementById('dashEbkList'),
   dashEbkFooter: document.getElementById('dashEbkFooter'),
   currentShgHeading: document.getElementById('currentShgHeading'),
   memberStatsBadge: document.getElementById('memberStatsBadge'),
@@ -406,6 +408,13 @@ function bindEvents() {
   el.dashEbkFooter.addEventListener('click', (e) => {
     if (!e.target.closest('[data-action="toggle-ebk-all"]')) return;
     state.dashEbkShowAll = !state.dashEbkShowAll;
+    renderDashEbkTable();
+  });
+  el.dashEbkFilters.addEventListener('click', (e) => {
+    const chip = e.target.closest('[data-filter]');
+    if (!chip) return;
+    state.dashEbkFilter = chip.dataset.filter;
+    state.dashEbkShowAll = false;
     renderDashEbkTable();
   });
 
@@ -909,13 +918,27 @@ async function clearCurrentReason() {
    eKYC DASHBOARD
    ========================================================================== */
 
-// Status colours validated for colour-blind separation; every segment also carries a text label
+// Aadhaar status of members whose eKYC is still pending. "VERIFIED" means the Aadhaar
+// number is verified in lokOS — not that eKYC is done — so it is not shown as green/success.
 const AADHAAR_STATUSES = [
-  { key: 'VERIFIED', label: 'Verified', color: '#15803d' },
-  { key: 'NOT AVAILABLE', label: 'Not Available', color: '#f59e0b' },
-  { key: 'NOT VERIFIED', label: 'Not Verified', color: '#dc2626' },
-  { key: 'OTHER', label: 'Not Recorded', color: '#94a3b8' }
+  { key: 'VERIFIED', label: 'Aadhaar Verified', tone: 'blue', icon: '✓', hint: 'Aadhaar is verified in lokOS — eKYC can be done now' },
+  { key: 'NOT AVAILABLE', label: 'Aadhaar Not Available', tone: 'amber', icon: '!', hint: 'No Aadhaar in lokOS — collect and enter Aadhaar first' },
+  { key: 'NOT VERIFIED', label: 'Aadhaar Not Verified', tone: 'red', icon: '✕', hint: 'Aadhaar entered but not verified — check the number' },
+  { key: 'OTHER', label: 'Not Recorded', tone: 'gray', icon: '?', hint: 'Aadhaar status missing in the data' }
 ];
+
+const EBK_FILTERS = [
+  { key: 'all', label: 'All' },
+  { key: 'not_started', label: 'Not started' },
+  { key: 'in_progress', label: 'In progress' },
+  { key: 'completed', label: 'Completed' }
+];
+
+function ebkStage(g) {
+  if (!g.need) return 'nothing';
+  if (g.tagged >= g.need) return 'completed';
+  return g.tagged ? 'in_progress' : 'not_started';
+}
 
 const DASH_EBK_PAGE_SIZE = 20;
 let dashEbkGroups = [];
@@ -997,46 +1020,54 @@ function renderDashKpis(list, need, tagged) {
 }
 
 function renderDashAadhaar(list) {
-  const total = list.length;
+  const pending = list.filter(m => m.ekyc.toLowerCase() !== 'yes');
+  const total = pending.length;
   const counts = {};
   AADHAAR_STATUSES.forEach(s => counts[s.key] = 0);
-  list.forEach(m => {
+  pending.forEach(m => {
     const v = (m.akyc || '').trim().toUpperCase();
     counts[counts.hasOwnProperty(v) && v !== 'OTHER' ? v : 'OTHER']++;
   });
 
-  el.dashAadhaarSub.textContent = `${fmt(total)} members`;
+  el.dashAadhaarSub.textContent = `${fmt(total)} members have not completed eKYC`;
   if (!total) {
-    el.dashAadhaar.innerHTML = '<p class="dash-empty">No members in this selection.</p>';
+    el.dashAadhaar.innerHTML = '<p class="dash-empty">No eKYC-pending members in this selection.</p>';
     return;
   }
 
   // "Not Recorded" only appears when there is something to show
-  const statuses = AADHAAR_STATUSES.filter(s => s.key !== 'OTHER' || counts.OTHER > 0);
-  const describe = s => `${s.label}: ${fmt(counts[s.key])} (${percentOf(counts[s.key], total)}%)`;
-
-  const segments = statuses.filter(s => counts[s.key] > 0).map(s => `
-    <span class="dash-stack-seg" style="flex-grow:${counts[s.key]}; background:${s.color};" title="${describe(s)}"></span>
-  `).join('');
-
-  const legend = statuses.map(s => `
-    <div class="dash-legend-item">
-      <span class="dash-swatch" style="background:${s.color};"></span>
-      <span class="dash-legend-label">${s.label}</span>
-      <span class="dash-legend-val">${fmt(counts[s.key])}</span>
-      <span class="dash-legend-pct">${percentOf(counts[s.key], total)}%</span>
-    </div>
-  `).join('');
-
-  el.dashAadhaar.innerHTML = `
-    <div class="dash-stack" role="img" aria-label="Aadhaar KYC status — ${statuses.map(describe).join(', ')}">${segments}</div>
-    <div class="dash-legend">${legend}</div>
-  `;
+  el.dashAadhaar.innerHTML = AADHAAR_STATUSES
+    .filter(s => s.key !== 'OTHER' || counts.OTHER > 0)
+    .map(s => `
+      <div class="aadhaar-card tone-${s.tone}">
+        <div class="aadhaar-card-head">
+          <span class="aadhaar-icon" aria-hidden="true">${s.icon}</span>
+          <span class="aadhaar-label">${s.label}</span>
+        </div>
+        <div class="aadhaar-value">
+          <span class="aadhaar-num">${fmt(counts[s.key])}</span>
+          <span class="aadhaar-pct">${percentOf(counts[s.key], total)}%</span>
+        </div>
+        <div class="aadhaar-hint">${s.hint}</div>
+      </div>
+    `).join('');
 }
 
 function renderDashEbkTable() {
   const q = state.dashEbkQuery;
-  let rows = dashEbkGroups.filter(g => !q || g.name.toLowerCase().includes(q) || (g.id || '').toLowerCase().includes(q));
+  const searched = dashEbkGroups.filter(g => !q || g.name.toLowerCase().includes(q) || (g.id || '').toLowerCase().includes(q));
+
+  // Filter chips carry the count for the current search
+  const stageCounts = { all: searched.length, not_started: 0, in_progress: 0, completed: 0 };
+  searched.forEach(g => { const s = ebkStage(g); if (s in stageCounts) stageCounts[s]++; });
+  el.dashEbkFilters.innerHTML = EBK_FILTERS.map(f => `
+    <button class="ebk-chip ${state.dashEbkFilter === f.key ? 'active' : ''}" data-filter="${f.key}" role="tab"
+            aria-selected="${state.dashEbkFilter === f.key}">
+      ${f.label} <span class="ebk-chip-count">${fmt(stageCounts[f.key])}</span>
+    </button>
+  `).join('');
+
+  let rows = state.dashEbkFilter === 'all' ? searched : searched.filter(g => ebkStage(g) === state.dashEbkFilter);
 
   const pendingOf = g => g.need - g.tagged;
   // Groups with nothing to tag sink to the bottom for the "pending" and "progress" sorts
@@ -1051,32 +1082,40 @@ function renderDashEbkTable() {
   const visible = state.dashEbkShowAll ? rows : rows.slice(0, DASH_EBK_PAGE_SIZE);
 
   if (!total) {
-    el.dashEbkBody.innerHTML = `<tr><td colspan="6" class="placeholder-row">No bookkeepers match "${escapeHtml(q)}".</td></tr>`;
+    el.dashEbkList.innerHTML = `<p class="dash-empty ebk-empty">No bookkeepers match this ${q ? `search "${escapeHtml(q)}"` : 'filter'}.</p>`;
     el.dashEbkFooter.innerHTML = '';
     return;
   }
 
-  el.dashEbkBody.innerHTML = visible.map(g => {
+  const STAGE_LABEL = { not_started: 'Not started', in_progress: 'In progress', completed: '✓ Completed', nothing: 'Nothing to tag' };
+  el.dashEbkList.innerHTML = visible.map(g => {
     const pct = percentOf(g.tagged, g.need);
-    const progressCell = g.need
-      ? `<div class="dash-meter" title="${fmt(g.tagged)} of ${fmt(g.need)} tagged">
-           <span class="dash-meter-track"><span class="dash-meter-fill" style="width:${pct}%;"></span></span>
-           <span class="dash-meter-val">${pct}%</span>
-         </div>
-         <div class="dash-meter-sub">${fmt(g.tagged)} / ${fmt(g.need)} tagged</div>`
-      : '<span class="text-muted dash-none">Nothing to tag</span>';
+    const stage = ebkStage(g);
+    const unassigned = !g.id && g.name === 'Not Assigned';
+    const avatar = unassigned ? { bg: '#f1f5f9', text: '#64748b' } : getAvatarStyle(g.name);
     return `
-      <tr>
-        <td>
-          <div class="dash-ebk-name">${escapeHtml(g.name)}</div>
-          ${g.id ? `<div class="dash-ebk-id">${escapeHtml(g.id)}</div>` : ''}
-        </td>
-        <td class="text-center dash-col-opt dash-num">${fmt(g.members)}</td>
-        <td class="text-center dash-col-opt-sm dash-num">${fmt(g.need)}</td>
-        <td class="text-center dash-col-opt-sm dash-num">${fmt(g.tagged)}</td>
-        <td class="text-center dash-col-opt dash-num">${fmt(g.need - g.tagged)}</td>
-        <td class="dash-col-progress">${progressCell}</td>
-      </tr>
+      <div class="ebk-card ${unassigned ? 'ebk-unassigned' : ''}" title="${escapeHtml(g.name)}: ${fmt(g.tagged)} of ${fmt(g.need)} tagged">
+        <div class="ebk-card-top">
+          <span class="ebk-avatar" style="background:${avatar.bg}; color:${avatar.text};">${unassigned ? '?' : escapeHtml(g.name.trim().charAt(0).toUpperCase())}</span>
+          <div class="ebk-ident">
+            <div class="ebk-name">${escapeHtml(g.name)}</div>
+            <div class="ebk-id ${g.id ? '' : 'ebk-id-plain'}">${g.id ? escapeHtml(g.id) : 'No bookkeeper in master data'}</div>
+          </div>
+          <span class="ebk-stage stage-${stage}">${STAGE_LABEL[stage]}</span>
+        </div>
+        ${g.need ? `
+        <div class="ebk-progress">
+          <div class="ebk-track"><div class="ebk-fill" style="width:${pct}%;"></div></div>
+          <span class="ebk-pct">${pct}%</span>
+        </div>` : ''}
+        <div class="ebk-meta">
+          <span><strong>${fmt(g.tagged)}</strong> of <strong>${fmt(g.need)}</strong> tagged</span>
+          <span class="ebk-dot">·</span>
+          <span class="${pendingOf(g) ? 'ebk-pending' : ''}"><strong>${fmt(pendingOf(g))}</strong> pending</span>
+          <span class="ebk-dot">·</span>
+          <span>${fmt(g.members)} members</span>
+        </div>
+      </div>
     `;
   }).join('');
 

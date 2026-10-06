@@ -2270,59 +2270,95 @@ body {
   padding: 0.75rem 0;
 }
 
-/* Aadhaar part-to-whole bar: 2px surface gap between segments, no borders */
-.dash-stack {
-  display: flex;
-  gap: 2px;
-  height: 14px;
-  border-radius: 4px;
-  overflow: hidden;
+/* Aadhaar status cards (eKYC-pending members). Tones are informational, never "success" green. */
+.aadhaar-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.85rem;
+}
+
+.aadhaar-card {
+  --tone: #2563eb;
+  --tone-bg: #eff6ff;
+  --tone-border: #dbeafe;
+  position: relative;
   background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.9rem 1rem 0.95rem 1.15rem;
+  overflow: hidden;
 }
 
-.dash-stack-seg {
-  flex-basis: 0;
-  min-width: 3px;
+.aadhaar-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: var(--tone);
 }
 
-.dash-legend {
-  margin-top: 0.9rem;
-  display: grid;
-  gap: 0.45rem;
-}
+.aadhaar-card.tone-blue  { --tone: #2563eb; --tone-bg: #eff6ff; --tone-border: #dbeafe; }
+.aadhaar-card.tone-amber { --tone: #d97706; --tone-bg: #fffbeb; --tone-border: #fde68a; }
+.aadhaar-card.tone-red   { --tone: #dc2626; --tone-bg: #fef2f2; --tone-border: #fecaca; }
+.aadhaar-card.tone-gray  { --tone: #64748b; --tone-bg: #f1f5f9; --tone-border: #e2e8f0; }
 
-.dash-legend-item {
-  display: grid;
-  grid-template-columns: 10px 1fr auto 3.2rem;
+.aadhaar-card-head {
+  display: flex;
   align-items: center;
-  gap: 0.6rem;
-  font-size: 0.85rem;
+  gap: 0.5rem;
 }
 
-.dash-swatch {
-  width: 10px;
-  height: 10px;
-  border-radius: 3px;
+.aadhaar-icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: var(--tone);
+  background: var(--tone-bg);
+  border: 1px solid var(--tone-border);
+  flex-shrink: 0;
 }
 
-.dash-legend-label {
-  color: var(--text-main);
-}
-
-.dash-legend-val {
+.aadhaar-label {
+  font-size: 0.82rem;
   font-weight: 700;
   color: var(--text-main);
-  font-variant-numeric: tabular-nums;
 }
 
-.dash-legend-pct {
-  color: var(--text-muted);
+.aadhaar-value {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin: 0.55rem 0 0.3rem;
+}
+
+.aadhaar-num {
+  font-size: 1.75rem;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--text-main);
+}
+
+.aadhaar-pct {
   font-size: 0.78rem;
-  text-align: right;
-  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: var(--tone);
+  background: var(--tone-bg);
+  border-radius: 999px;
+  padding: 0.1rem 0.5rem;
 }
 
-/* eBK progress table */
+.aadhaar-hint {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+/* eBK progress */
 .dash-ebk-controls {
   display: flex;
   gap: 0.5rem;
@@ -2331,9 +2367,9 @@ body {
 
 .dash-ebk-controls input,
 .dash-ebk-controls select {
-  padding: 0.45rem 0.65rem;
+  padding: 0.5rem 0.7rem;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 8px;
   font-family: inherit;
   font-size: 0.82rem;
   color: var(--text-main);
@@ -2348,83 +2384,201 @@ body {
 .dash-ebk-controls select:focus {
   outline: none;
   border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px var(--primary-light);
 }
 
-.dash-table-wrap {
-  box-shadow: none;
+.ebk-filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.9rem;
 }
 
-.dash-ebk-table .text-center {
-  text-align: center;
+.ebk-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #fff;
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
 }
 
-.dash-ebk-table .text-muted {
+.ebk-chip:hover {
+  border-color: #cbd5e1;
+  color: var(--text-main);
+}
+
+.ebk-chip.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+
+.ebk-chip-count {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  background: #f1f5f9;
   color: var(--text-muted);
 }
 
-.dash-ebk-table td {
-  padding: 0.6rem 0.85rem;
+.ebk-chip.active .ebk-chip-count {
+  background: rgba(255, 255, 255, 0.22);
+  color: #fff;
 }
 
-.dash-num {
-  font-variant-numeric: tabular-nums;
+.ebk-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 0.75rem;
 }
 
-.dash-ebk-name {
-  font-weight: 600;
+.ebk-card {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.85rem 0.95rem;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.dash-ebk-id {
+.ebk-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: var(--shadow-md);
+}
+
+.ebk-card.ebk-unassigned {
+  border-style: dashed;
+  background: #fcfcfd;
+}
+
+.ebk-card-top {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.ebk-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.ebk-ident {
+  min-width: 0;
+  flex: 1;
+}
+
+.ebk-name {
+  font-weight: 700;
+  font-size: 0.88rem;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ebk-id {
   font-size: 0.72rem;
   color: var(--text-muted);
   font-family: var(--font-mono);
-  word-break: break-all;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.dash-meter-sub {
-  display: none;
-  font-size: 0.72rem;
-  color: var(--text-muted);
-  margin-top: 0.2rem;
-  font-variant-numeric: tabular-nums;
+.ebk-id.ebk-id-plain {
+  font-family: var(--font-sans);
+  font-style: italic;
 }
 
-.dash-col-progress {
-  width: 30%;
-  min-width: 150px;
+.ebk-stage {
+  flex-shrink: 0;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  white-space: nowrap;
 }
 
-.dash-meter {
+.ebk-stage.stage-not_started { background: #f1f5f9; color: #475569; border-color: #e2e8f0; }
+.ebk-stage.stage-in_progress { background: #fffbeb; color: #b45309; border-color: #fde68a; }
+.ebk-stage.stage-completed   { background: #f0fdf4; color: #15803d; border-color: #bbf7d0; }
+.ebk-stage.stage-nothing     { background: #f8fafc; color: #94a3b8; border-color: #e2e8f0; }
+
+.ebk-progress {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: 0.65rem;
 }
 
-.dash-meter-track {
+.ebk-track {
   flex: 1;
-  height: 8px;
-  background: #f1f5f9;
-  border-radius: 4px;
+  height: 10px;
+  background: #eef2f7;
+  border-radius: 999px;
   overflow: hidden;
 }
 
-.dash-meter-fill {
-  display: block;
+.ebk-fill {
   height: 100%;
+  min-width: 0;
   background: var(--primary);
-  border-radius: 4px;
+  border-radius: 999px;
 }
 
-.dash-meter-val {
+.ebk-pct {
   min-width: 2.6rem;
   text-align: right;
-  font-weight: 700;
-  font-size: 0.8rem;
+  font-weight: 800;
+  font-size: 0.85rem;
+  color: var(--text-main);
   font-variant-numeric: tabular-nums;
 }
 
-.dash-none {
+.ebk-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.15rem 0.4rem;
   font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.ebk-meta strong {
+  color: var(--text-main);
+  font-weight: 700;
+}
+
+.ebk-meta .ebk-pending strong {
+  color: #b45309;
+}
+
+.ebk-dot {
+  color: #cbd5e1;
+}
+
+.ebk-empty {
+  grid-column: 1 / -1;
+  text-align: center;
 }
 
 .dash-ebk-footer {
@@ -2432,7 +2586,9 @@ body {
   justify-content: space-between;
   align-items: center;
   gap: 0.5rem;
-  margin-top: 0.65rem;
+  margin-top: 0.85rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
   font-size: 0.78rem;
   color: var(--text-muted);
 }
@@ -2443,40 +2599,29 @@ body {
   }
 
   .dash-ebk-controls,
-  .dash-ebk-controls input {
-    width: 100%;
-  }
-
+  .dash-ebk-controls input,
   .dash-ebk-controls select {
     width: 100%;
   }
-
-  .dash-col-opt {
-    display: none;
-  }
-
-  .dash-ebk-table th,
-  .dash-ebk-table td {
-    padding: 0.55rem 0.5rem;
-  }
-
-  .dash-col-progress {
-    min-width: 110px;
-  }
 }
 
-/* Phones: Need / Tagged fold into the progress cell so the table fits without side-scrolling */
 @media (max-width: 600px) {
-  .dash-col-opt-sm {
-    display: none;
+  .ebk-list {
+    grid-template-columns: 1fr;
   }
 
-  .dash-meter-sub {
-    display: block;
+  .aadhaar-num {
+    font-size: 1.5rem;
   }
 
-  .dash-col-progress {
-    width: 45%;
-    min-width: 0;
+  .ebk-filter-chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 0.15rem;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .ebk-chip {
+    flex-shrink: 0;
   }
 }
