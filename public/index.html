@@ -81,6 +81,69 @@
         </div>
       </section>
 
+      <!-- eKYC Dashboard (shown until an SHG is selected; follows the GP / Village selection) -->
+      <div id="ekycDashboard" class="ekyc-dash">
+        <div class="dash-scope-row">
+          <h3 class="dash-title">eKYC &amp; Phone Verification Dashboard</h3>
+          <span class="dash-scope" id="dashScopeLabel">Block — All Gram Panchayats</span>
+        </div>
+
+        <section class="stats-card">
+          <div class="cutoff-stats-grid" id="dashKpis"></div>
+        </section>
+
+        <div class="dash-grid">
+          <section class="dash-card">
+            <div class="dash-card-head">
+              <h4>Aadhaar KYC Status</h4>
+              <span class="dash-card-sub" id="dashAadhaarSub"></span>
+            </div>
+            <div id="dashAadhaar"></div>
+          </section>
+
+          <section class="dash-card">
+            <div class="dash-card-head">
+              <h4>Reasons Tagged</h4>
+              <span class="dash-card-sub" id="dashReasonsSub"></span>
+            </div>
+            <div id="dashReasons"></div>
+          </section>
+        </div>
+
+        <section class="dash-card">
+          <div class="dash-card-head dash-card-head-wrap">
+            <div>
+              <h4>eBK-wise Progress</h4>
+              <span class="dash-card-sub">Reasons tagged out of members needing a reason, per bookkeeper</span>
+            </div>
+            <div class="dash-ebk-controls">
+              <input type="text" id="dashEbkSearch" placeholder="Search eBK name or ID...">
+              <select id="dashEbkSort">
+                <option value="pending">Most pending first</option>
+                <option value="progress">Lowest progress first</option>
+                <option value="name">Name (A–Z)</option>
+              </select>
+            </div>
+          </div>
+          <div class="table-container dash-table-wrap">
+            <table class="data-table dash-ebk-table">
+              <thead>
+                <tr>
+                  <th>eBK (Bookkeeper)</th>
+                  <th class="text-center dash-col-opt">Members</th>
+                  <th class="text-center dash-col-opt-sm">Need Reason</th>
+                  <th class="text-center dash-col-opt-sm">Tagged</th>
+                  <th class="text-center dash-col-opt">Pending</th>
+                  <th class="dash-col-progress">Progress</th>
+                </tr>
+              </thead>
+              <tbody id="dashEbkBody"></tbody>
+            </table>
+          </div>
+          <div class="dash-ebk-footer" id="dashEbkFooter"></div>
+        </section>
+      </div>
+
       <!-- Clean List Header & Search Bar -->
       <div class="list-header-bar" id="listHeaderBar" style="display:none;">
         <div class="shg-info-title">
@@ -93,7 +156,7 @@
       </div>
 
       <!-- Members Table -->
-      <section class="table-container">
+      <section class="table-container" id="membersTableSection" style="display:none;">
         <table class="data-table" id="membersTable">
           <thead>
             <tr>

@@ -33,6 +33,11 @@ const state = {
   currentList: [],
   activeMemberIndex: -1,
 
+  // eKYC dashboard eBK table controls
+  dashEbkQuery: '',
+  dashEbkSort: 'pending',
+  dashEbkShowAll: false,
+
   // Cutoff state
   cutoffList: [],
   cutoffHierarchy: null,
@@ -78,6 +83,20 @@ const el = {
   resetAllNavBtn: document.getElementById('resetAllNavBtn'),
 
   listHeaderBar: document.getElementById('listHeaderBar'),
+  membersTableSection: document.getElementById('membersTableSection'),
+
+  // eKYC Dashboard
+  ekycDashboard: document.getElementById('ekycDashboard'),
+  dashScopeLabel: document.getElementById('dashScopeLabel'),
+  dashKpis: document.getElementById('dashKpis'),
+  dashAadhaar: document.getElementById('dashAadhaar'),
+  dashAadhaarSub: document.getElementById('dashAadhaarSub'),
+  dashReasons: document.getElementById('dashReasons'),
+  dashReasonsSub: document.getElementById('dashReasonsSub'),
+  dashEbkSearch: document.getElementById('dashEbkSearch'),
+  dashEbkSort: document.getElementById('dashEbkSort'),
+  dashEbkBody: document.getElementById('dashEbkBody'),
+  dashEbkFooter: document.getElementById('dashEbkFooter'),
   currentShgHeading: document.getElementById('currentShgHeading'),
   memberStatsBadge: document.getElementById('memberStatsBadge'),
   memberSearchInput: document.getElementById('memberSearchInput'),
@@ -258,6 +277,7 @@ function switchTab(tabName) {
     if (el.lakhpatiListView) el.lakhpatiListView.style.display = 'none';
     if (el.exportAllCsvBtn) el.exportAllCsvBtn.style.display = 'inline-flex';
     if (el.exportLakhpatiCsvBtn) el.exportLakhpatiCsvBtn.style.display = 'none';
+    renderMembersTable();
   } else if (tabName === 'lakhpati') {
     if (el.navTabMembers) el.navTabMembers.classList.remove('active');
     if (el.navTabLakhpati) el.navTabLakhpati.classList.add('active');
@@ -350,6 +370,21 @@ function bindEvents() {
     state.selectedShg = e.target.value;
     updateSelectorFooter();
     renderMembersTable();
+  });
+
+  // Dashboard eBK table controls
+  el.dashEbkSearch.addEventListener('input', (e) => {
+    state.dashEbkQuery = e.target.value.trim().toLowerCase();
+    renderDashEbkTable();
+  });
+  el.dashEbkSort.addEventListener('change', (e) => {
+    state.dashEbkSort = e.target.value;
+    renderDashEbkTable();
+  });
+  el.dashEbkFooter.addEventListener('click', (e) => {
+    if (!e.target.closest('[data-action="toggle-ebk-all"]')) return;
+    state.dashEbkShowAll = !state.dashEbkShowAll;
+    renderDashEbkTable();
   });
 
   // Member Search input
@@ -572,15 +607,13 @@ function renderMembersTable() {
 
   el.memberStatsBadge.textContent = `${list.length.toLocaleString()} Members`;
 
-  if (!state.selectedShg && !state.searchQuery) {
-    el.membersTableBody.innerHTML = `
-      <tr>
-        <td colspan="7" class="placeholder-row">
-          Please select a <strong>Gram Panchayat</strong>, then <strong>Village</strong>, then <strong>SHG</strong> above to view members.
-        </td>
-      </tr>
-    `;
+  // Until an SHG is picked, the dashboard (scoped to the GP / Village selection) replaces the list
+  const showDashboard = !state.selectedShg && !state.searchQuery;
+  el.ekycDashboard.style.display = showDashboard ? 'block' : 'none';
+  el.membersTableSection.style.display = showDashboard ? 'none' : 'block';
+  if (showDashboard) {
     el.listHeaderBar.style.display = 'none';
+    renderEkycDashboard();
     return;
   }
   el.listHeaderBar.style.display = 'flex';
@@ -860,6 +893,221 @@ async function clearCurrentReason() {
   el.detailRemarksInput.value = '';
   el.remarksGroup.style.display = 'none';
   el.savedTimestampNotice.style.display = 'none';
+}
+
+/* ==========================================================================
+   eKYC DASHBOARD
+   ========================================================================== */
+
+// Status colours validated for colour-blind separation; every segment also carries a text label
+const AADHAAR_STATUSES = [
+  { key: 'VERIFIED', label: 'Verified', color: '#15803d' },
+  { key: 'NOT AVAILABLE', label: 'Not Available', color: '#f59e0b' },
+  { key: 'NOT VERIFIED', label: 'Not Verified', color: '#dc2626' },
+  { key: 'OTHER', label: 'Not Recorded', color: '#94a3b8' }
+];
+
+const DASH_REASON_LABELS = {
+  'Aadhaar Demographic Mismatch': 'Aadhaar / Name / DOB Mismatch'
+};
+
+const DASH_EBK_PAGE_SIZE = 20;
+let dashEbkGroups = [];
+
+function isFullyVerifiedMember(m) {
+  return m.ekyc.toLowerCase() === 'yes' && m.pvf;
+}
+
+// A reason is expected for every member with a code who isn't fully verified
+function needsReason(m) {
+  return hasMemberCode(m) && !isFullyVerifiedMember(m);
+}
+
+function isReasonTagged(m) {
+  const saved = getSavedReason(m);
+  return !!(saved && saved.reason);
+}
+
+function percentOf(n, total) {
+  return total ? Math.round((n / total) * 100) : 0;
+}
+
+function fmt(n) {
+  return n.toLocaleString();
+}
+
+function renderEkycDashboard() {
+  let list = state.members.filter(m => m.st === 'ACTIVE');
+  if (state.selectedGp) list = list.filter(m => m.gp === state.selectedGp);
+  if (state.selectedVillage) list = list.filter(m => m.vil === state.selectedVillage);
+
+  el.dashScopeLabel.textContent = state.selectedVillage
+    ? `GP: ${state.selectedGp} › Village: ${state.selectedVillage}`
+    : state.selectedGp ? `GP: ${state.selectedGp}` : 'Block — All Gram Panchayats';
+
+  const need = list.filter(needsReason);
+  const tagged = need.filter(isReasonTagged);
+
+  renderDashKpis(list, need, tagged);
+  renderDashAadhaar(list);
+  renderDashReasons(need, tagged);
+
+  // eBK groups for the progress table
+  const groups = new Map();
+  list.forEach(m => {
+    const assigned = m.ebkn && m.ebkn !== '-';
+    const key = assigned ? (m.ebkid && m.ebkid !== '-' ? m.ebkid : m.ebkn) : '__none__';
+    if (!groups.has(key)) {
+      groups.set(key, { name: assigned ? m.ebkn : 'Not Assigned', id: assigned ? m.ebkid : '', members: 0, need: 0, tagged: 0 });
+    }
+    const g = groups.get(key);
+    g.members++;
+    if (needsReason(m)) {
+      g.need++;
+      if (isReasonTagged(m)) g.tagged++;
+    }
+  });
+  dashEbkGroups = [...groups.values()];
+  renderDashEbkTable();
+}
+
+function renderDashKpis(list, need, tagged) {
+  const pending = need.length - tagged.length;
+  const noCode = list.filter(m => !hasMemberCode(m)).length;
+  const tiles = [
+    { title: 'TOTAL MEMBERS', value: fmt(list.length), tag: 'ACTIVE', tagClass: 'tag-neutral' },
+    { title: 'NEED REASON', value: fmt(need.length), tag: 'eKYC / PHONE PENDING', tagClass: 'tag-neutral' },
+    { title: 'REASON TAGGED', value: fmt(tagged.length), tag: 'DONE', tagClass: 'tag-done', numClass: 'stat-green' },
+    { title: 'PENDING', value: fmt(pending), tag: 'TO BE TAGGED', tagClass: 'tag-warning', numClass: 'stat-orange' },
+    { title: 'PROGRESS', value: `${percentOf(tagged.length, need.length)}%`, tag: 'TAGGED / NEED', tagClass: 'tag-neutral' },
+    { title: 'NO MEMBER CODE', value: fmt(noCode), tag: 'CANNOT BE TAGGED', tagClass: 'tag-neutral' }
+  ];
+  el.dashKpis.innerHTML = tiles.map(t => `
+    <div class="stat-box">
+      <span class="stat-date-title">${t.title}</span>
+      <span class="stat-num ${t.numClass || ''}">${t.value}</span>
+      <span class="stat-sub-tag ${t.tagClass}">${t.tag}</span>
+    </div>
+  `).join('');
+}
+
+function renderDashAadhaar(list) {
+  const total = list.length;
+  const counts = {};
+  AADHAAR_STATUSES.forEach(s => counts[s.key] = 0);
+  list.forEach(m => {
+    const v = (m.akyc || '').trim().toUpperCase();
+    counts[counts.hasOwnProperty(v) && v !== 'OTHER' ? v : 'OTHER']++;
+  });
+
+  el.dashAadhaarSub.textContent = `${fmt(total)} members`;
+  if (!total) {
+    el.dashAadhaar.innerHTML = '<p class="dash-empty">No members in this selection.</p>';
+    return;
+  }
+
+  // "Not Recorded" only appears when there is something to show
+  const statuses = AADHAAR_STATUSES.filter(s => s.key !== 'OTHER' || counts.OTHER > 0);
+  const describe = s => `${s.label}: ${fmt(counts[s.key])} (${percentOf(counts[s.key], total)}%)`;
+
+  const segments = statuses.filter(s => counts[s.key] > 0).map(s => `
+    <span class="dash-stack-seg" style="flex-grow:${counts[s.key]}; background:${s.color};" title="${describe(s)}"></span>
+  `).join('');
+
+  const legend = statuses.map(s => `
+    <div class="dash-legend-item">
+      <span class="dash-swatch" style="background:${s.color};"></span>
+      <span class="dash-legend-label">${s.label}</span>
+      <span class="dash-legend-val">${fmt(counts[s.key])}</span>
+      <span class="dash-legend-pct">${percentOf(counts[s.key], total)}%</span>
+    </div>
+  `).join('');
+
+  el.dashAadhaar.innerHTML = `
+    <div class="dash-stack" role="img" aria-label="Aadhaar KYC status — ${statuses.map(describe).join(', ')}">${segments}</div>
+    <div class="dash-legend">${legend}</div>
+  `;
+}
+
+function renderDashReasons(need, tagged) {
+  el.dashReasonsSub.textContent = `${fmt(tagged.length)} tagged of ${fmt(need.length)} needing a reason`;
+
+  const counts = new Map(REASON_OPTIONS.filter(o => o.value).map(o => [o.value, 0]));
+  tagged.forEach(m => {
+    const r = getSavedReason(m).reason;
+    counts.set(r, (counts.get(r) || 0) + 1);
+  });
+
+  if (!tagged.length) {
+    el.dashReasons.innerHTML = '<p class="dash-empty">No reasons tagged yet in this selection.</p>';
+    return;
+  }
+
+  const rows = [...counts.entries()].sort((a, b) => b[1] - a[1]);
+  const max = Math.max(...rows.map(([, n]) => n), 1);
+  el.dashReasons.innerHTML = rows.map(([reason, n]) => {
+    const label = DASH_REASON_LABELS[reason] || reason;
+    const share = percentOf(n, tagged.length);
+    return `
+      <div class="dash-bar-row" title="${escapeHtml(label)}: ${fmt(n)} (${share}% of tagged)">
+        <span class="dash-bar-label">${escapeHtml(label)}</span>
+        <span class="dash-bar-track"><span class="dash-bar-fill" style="width:${(n / max) * 100}%;"></span></span>
+        <span class="dash-bar-val">${fmt(n)} <span class="dash-bar-pct">${share}%</span></span>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderDashEbkTable() {
+  const q = state.dashEbkQuery;
+  let rows = dashEbkGroups.filter(g => !q || g.name.toLowerCase().includes(q) || (g.id || '').toLowerCase().includes(q));
+
+  const pendingOf = g => g.need - g.tagged;
+  // Groups with nothing to tag sink to the bottom for the "pending" and "progress" sorts
+  const sorters = {
+    pending: (a, b) => pendingOf(b) - pendingOf(a) || b.need - a.need || a.name.localeCompare(b.name),
+    progress: (a, b) => (!a.need - !b.need) || percentOf(a.tagged, a.need) - percentOf(b.tagged, b.need) || pendingOf(b) - pendingOf(a),
+    name: (a, b) => a.name.localeCompare(b.name)
+  };
+  rows.sort(sorters[state.dashEbkSort] || sorters.pending);
+
+  const total = rows.length;
+  const visible = state.dashEbkShowAll ? rows : rows.slice(0, DASH_EBK_PAGE_SIZE);
+
+  if (!total) {
+    el.dashEbkBody.innerHTML = `<tr><td colspan="6" class="placeholder-row">No bookkeepers match "${escapeHtml(q)}".</td></tr>`;
+    el.dashEbkFooter.innerHTML = '';
+    return;
+  }
+
+  el.dashEbkBody.innerHTML = visible.map(g => {
+    const pct = percentOf(g.tagged, g.need);
+    const progressCell = g.need
+      ? `<div class="dash-meter" title="${fmt(g.tagged)} of ${fmt(g.need)} tagged">
+           <span class="dash-meter-track"><span class="dash-meter-fill" style="width:${pct}%;"></span></span>
+           <span class="dash-meter-val">${pct}%</span>
+         </div>
+         <div class="dash-meter-sub">${fmt(g.tagged)} / ${fmt(g.need)} tagged</div>`
+      : '<span class="text-muted dash-none">Nothing to tag</span>';
+    return `
+      <tr>
+        <td>
+          <div class="dash-ebk-name">${escapeHtml(g.name)}</div>
+          ${g.id ? `<div class="dash-ebk-id">${escapeHtml(g.id)}</div>` : ''}
+        </td>
+        <td class="text-center dash-col-opt dash-num">${fmt(g.members)}</td>
+        <td class="text-center dash-col-opt-sm dash-num">${fmt(g.need)}</td>
+        <td class="text-center dash-col-opt-sm dash-num">${fmt(g.tagged)}</td>
+        <td class="text-center dash-col-opt dash-num">${fmt(g.need - g.tagged)}</td>
+        <td class="dash-col-progress">${progressCell}</td>
+      </tr>
+    `;
+  }).join('');
+
+  el.dashEbkFooter.innerHTML = total > DASH_EBK_PAGE_SIZE
+    ? `<span>Showing ${fmt(visible.length)} of ${fmt(total)} bookkeepers</span>
+       <button class="btn-link" data-action="toggle-ebk-all">${state.dashEbkShowAll ? 'Show fewer' : `Show all ${fmt(total)}`}</button>`
+    : `<span>${fmt(total)} bookkeeper${total === 1 ? '' : 's'}</span>`;
 }
 
 /* ==========================================================================
