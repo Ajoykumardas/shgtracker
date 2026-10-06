@@ -2,14 +2,34 @@
  * Clean & Direct SHG Member Verification & Cutoff Tracker
  */
 
+// The reason dropdown is built from this list
 const REASON_OPTIONS = [
   { value: '', label: '-- Select Reason --' },
   { value: 'Outstation', label: 'Outstation (Currently not present in the Village or District)' },
-  { value: 'Migrated', label: 'Migrated to somewhere else / other Place' },
-  { value: 'Aadhaar Demographic Mismatch', label: 'Aadhaar / Name / DOB Mismatch in Records' },
-  { value: 'Left SHG / Reluctant', label: 'Member Left SHG / Unwilling / Reluctant' },
-  { value: 'Other', label: 'Other Reason (Specify in Remarks)' }
+  { value: 'Wrong Aadhaar Entry in lokOS', label: 'Wrong Entry in lokOS Aadhaar (wrong Aadhaar number entered)' },
+  { value: 'Left SHG / Reluctant', label: 'Member Left SHG / Unwilling / Reluctant' }
 ];
+
+// Saved values that were renamed; mapped to the current value when reasons load
+const REASON_ALIASES = {
+  'Aadhaar Demographic Mismatch': 'Wrong Aadhaar Entry in lokOS'
+};
+
+// Retired options ("Migrated", "Other") stay saved and visible, but can't be newly selected
+function isCurrentReason(value) {
+  return REASON_OPTIONS.some(o => o.value && o.value === value);
+}
+
+function normalizeSavedReasons(reasons) {
+  Object.values(reasons).forEach(r => {
+    if (r && REASON_ALIASES[r.reason]) r.reason = REASON_ALIASES[r.reason];
+  });
+  return reasons;
+}
+
+function describeReason(saved) {
+  return saved.reason === 'Other' && saved.remarks ? `Other: ${saved.remarks}` : saved.reason;
+}
 
 const CUTOFF_DATES = [
   '12.08.2026',
@@ -126,8 +146,8 @@ const el = {
   formErrorAlert: document.getElementById('formErrorAlert'),
   formErrorAlertText: document.getElementById('formErrorAlertText'),
   detailReasonSelect: document.getElementById('detailReasonSelect'),
-  remarksGroup: document.getElementById('remarksGroup'),
-  detailRemarksInput: document.getElementById('detailRemarksInput'),
+  legacyReasonNotice: document.getElementById('legacyReasonNotice'),
+  legacyReasonText: document.getElementById('legacyReasonText'),
   saveReasonBtn: document.getElementById('saveReasonBtn'),
   saveOnlyBtn: document.getElementById('saveOnlyBtn'),
   clearReasonBtn: document.getElementById('clearReasonBtn'),
@@ -185,6 +205,8 @@ const el = {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
+  el.detailReasonSelect.innerHTML = REASON_OPTIONS
+    .map(o => `<option value="${escapeHtml(o.value)}">${escapeHtml(o.label)}</option>`).join('');
   loadSavedDataFromLocal();
   bindEvents();
   loadData();
@@ -220,7 +242,7 @@ async function loadData() {
     }
 
     if (reasonsRes && reasonsRes.ok) {
-      state.savedReasons = await reasonsRes.json() || {};
+      state.savedReasons = normalizeSavedReasons(await reasonsRes.json() || {});
       // No localStorage — server is single source of truth
     }
 
@@ -417,16 +439,9 @@ function bindEvents() {
   el.nextMemberBtn.addEventListener('click', showNextMember);
 
   // Reason select change
-  el.detailReasonSelect.addEventListener('change', (e) => {
-    const val = e.target.value;
-    if (val === 'Other') {
-      el.remarksGroup.style.display = 'block';
-    } else {
-      el.remarksGroup.style.display = 'none';
-    }
+  el.detailReasonSelect.addEventListener('change', () => {
     hideFormAlerts();
     el.detailReasonSelect.classList.remove('input-error');
-    el.detailRemarksInput.classList.remove('input-error');
   });
 
   // Form buttons
@@ -652,9 +667,7 @@ function renderMembersTable() {
     } else if (!hasCode) {
       reasonBadgeHtml = '<span class="status-badge badge-neutral">No Member Code</span>';
     } else if (saved && saved.reason) {
-      const displayReason = saved.reason === 'Other' && saved.remarks
-        ? `Other: ${escapeHtml(saved.remarks)}`
-        : escapeHtml(saved.reason);
+      const displayReason = escapeHtml(describeReason(saved));
       reasonBadgeHtml = `<span class="status-badge badge-warning" title="${displayReason}">${displayReason}</span>`;
     } else {
       reasonBadgeHtml = '<span class="status-badge badge-neutral">Reason Pending</span>';
@@ -757,14 +770,10 @@ function renderMemberDetail() {
 
     const saved = getSavedReason(m);
     if (saved && saved.reason) {
-      el.detailReasonSelect.value = saved.reason;
-      if (saved.reason === 'Other') {
-        el.remarksGroup.style.display = 'block';
-        el.detailRemarksInput.value = saved.remarks || '';
-      } else {
-        el.remarksGroup.style.display = 'none';
-        el.detailRemarksInput.value = '';
-      }
+      const isCurrent = isCurrentReason(saved.reason);
+      el.detailReasonSelect.value = isCurrent ? saved.reason : '';
+      el.legacyReasonText.textContent = describeReason(saved);
+      el.legacyReasonNotice.style.display = isCurrent ? 'none' : 'block';
 
       if (saved.updatedAt) {
         const timeStr = new Date(saved.updatedAt).toLocaleString();
@@ -775,13 +784,11 @@ function renderMemberDetail() {
       }
     } else {
       el.detailReasonSelect.value = '';
-      el.detailRemarksInput.value = '';
-      el.remarksGroup.style.display = 'none';
+      el.legacyReasonNotice.style.display = 'none';
       el.savedTimestampNotice.style.display = 'none';
     }
 
     el.detailReasonSelect.classList.remove('input-error');
-    el.detailRemarksInput.classList.remove('input-error');
   }
 }
 
@@ -807,27 +814,19 @@ async function saveCurrentReason(autoAdvance = true) {
 
   hideFormAlerts();
   el.detailReasonSelect.classList.remove('input-error');
-  el.detailRemarksInput.classList.remove('input-error');
 
   const reason = el.detailReasonSelect.value;
-  const remarks = el.detailRemarksInput.value.trim();
 
-  if (!reason) {
+  if (!isCurrentReason(reason)) {
     el.detailReasonSelect.classList.add('input-error');
     showFormError('Please select a Non-Completion Reason before saving.');
-    return;
-  }
-
-  if (reason === 'Other' && !remarks) {
-    el.detailRemarksInput.classList.add('input-error');
-    showFormError('Please specify the reason details in the remarks box below.');
     return;
   }
 
   const payload = {
     [m.mc]: {
       reason,
-      remarks,
+      remarks: '',
       updatedAt: new Date().toISOString()
     }
   };
@@ -868,7 +867,6 @@ async function clearCurrentReason() {
 
   hideFormAlerts();
   el.detailReasonSelect.classList.remove('input-error');
-  el.detailRemarksInput.classList.remove('input-error');
 
   const payload = { [m.mc]: { reason: '', remarks: '', updatedAt: new Date().toISOString() } };
   const formButtons = [el.saveReasonBtn, el.saveOnlyBtn, el.clearReasonBtn];
@@ -889,8 +887,7 @@ async function clearCurrentReason() {
   if (state.currentList[state.activeMemberIndex] !== m) return; // user moved on while saving
 
   el.detailReasonSelect.value = '';
-  el.detailRemarksInput.value = '';
-  el.remarksGroup.style.display = 'none';
+  el.legacyReasonNotice.style.display = 'none';
   el.savedTimestampNotice.style.display = 'none';
 }
 

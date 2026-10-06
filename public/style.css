@@ -741,6 +741,24 @@ body {
   color: #ffffff;
 }
 
+/* Saved reason that is no longer in the dropdown */
+.legacy-reason-notice {
+  background: var(--warning-bg);
+  border: 1px solid var(--warning-border);
+  border-radius: var(--radius);
+  padding: 0.65rem 0.85rem;
+  margin-bottom: 1rem;
+  font-size: 0.85rem;
+  color: #92400e;
+}
+
+.legacy-reason-hint {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.78rem;
+  color: #b45309;
+}
+
 /* Save in flight */
 .btn:disabled {
   opacity: 0.55;

@@ -263,21 +263,16 @@
           <span id="formErrorAlertText">Please specify the reason before saving.</span>
         </div>
 
-        <div class="form-group">
-          <label for="detailReasonSelect">Non-Completion Reason:</label>
-          <select id="detailReasonSelect" class="form-select-large">
-            <option value="">-- Select Reason --</option>
-            <option value="Outstation">Outstation (Currently not present in the Village or District)</option>
-            <option value="Migrated">Migrated to somewhere else / other Place</option>
-            <option value="Aadhaar Demographic Mismatch">Aadhaar / Name / DOB Mismatch in Records</option>
-            <option value="Left SHG / Reluctant">Member Left SHG / Unwilling / Reluctant</option>
-            <option value="Other">Other Reason (Specify Below)</option>
-          </select>
+        <!-- Shown when the saved reason is one that has been retired from the list -->
+        <div id="legacyReasonNotice" class="legacy-reason-notice" style="display:none;">
+          Previously recorded: <strong id="legacyReasonText"></strong>
+          <span class="legacy-reason-hint">This option is no longer in the list. Select a current reason to update it.</span>
         </div>
 
-        <div class="form-group" id="remarksGroup" style="display:none;">
-          <label for="detailRemarksInput">Specify Other Reason / Remarks <span class="required-indicator">*</span>:</label>
-          <textarea id="detailRemarksInput" rows="3" placeholder="Please specify the reason or details here (Required)..."></textarea>
+        <div class="form-group">
+          <label for="detailReasonSelect">Non-Completion Reason:</label>
+          <!-- Options are filled from REASON_OPTIONS in app.js -->
+          <select id="detailReasonSelect" class="form-select-large"></select>
         </div>
 
         <div class="form-action-row">
