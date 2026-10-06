@@ -91,8 +91,6 @@ const el = {
   dashKpis: document.getElementById('dashKpis'),
   dashAadhaar: document.getElementById('dashAadhaar'),
   dashAadhaarSub: document.getElementById('dashAadhaarSub'),
-  dashReasons: document.getElementById('dashReasons'),
-  dashReasonsSub: document.getElementById('dashReasonsSub'),
   dashEbkSearch: document.getElementById('dashEbkSearch'),
   dashEbkSort: document.getElementById('dashEbkSort'),
   dashEbkBody: document.getElementById('dashEbkBody'),
@@ -908,10 +906,6 @@ const AADHAAR_STATUSES = [
   { key: 'OTHER', label: 'Not Recorded', color: '#94a3b8' }
 ];
 
-const DASH_REASON_LABELS = {
-  'Aadhaar Demographic Mismatch': 'Aadhaar / Name / DOB Mismatch'
-};
-
 const DASH_EBK_PAGE_SIZE = 20;
 let dashEbkGroups = [];
 
@@ -951,7 +945,6 @@ function renderEkycDashboard() {
 
   renderDashKpis(list, need, tagged);
   renderDashAadhaar(list);
-  renderDashReasons(need, tagged);
 
   // eBK groups for the progress table
   const groups = new Map();
@@ -1028,35 +1021,6 @@ function renderDashAadhaar(list) {
     <div class="dash-stack" role="img" aria-label="Aadhaar KYC status — ${statuses.map(describe).join(', ')}">${segments}</div>
     <div class="dash-legend">${legend}</div>
   `;
-}
-
-function renderDashReasons(need, tagged) {
-  el.dashReasonsSub.textContent = `${fmt(tagged.length)} tagged of ${fmt(need.length)} needing a reason`;
-
-  const counts = new Map(REASON_OPTIONS.filter(o => o.value).map(o => [o.value, 0]));
-  tagged.forEach(m => {
-    const r = getSavedReason(m).reason;
-    counts.set(r, (counts.get(r) || 0) + 1);
-  });
-
-  if (!tagged.length) {
-    el.dashReasons.innerHTML = '<p class="dash-empty">No reasons tagged yet in this selection.</p>';
-    return;
-  }
-
-  const rows = [...counts.entries()].sort((a, b) => b[1] - a[1]);
-  const max = Math.max(...rows.map(([, n]) => n), 1);
-  el.dashReasons.innerHTML = rows.map(([reason, n]) => {
-    const label = DASH_REASON_LABELS[reason] || reason;
-    const share = percentOf(n, tagged.length);
-    return `
-      <div class="dash-bar-row" title="${escapeHtml(label)}: ${fmt(n)} (${share}% of tagged)">
-        <span class="dash-bar-label">${escapeHtml(label)}</span>
-        <span class="dash-bar-track"><span class="dash-bar-fill" style="width:${(n / max) * 100}%;"></span></span>
-        <span class="dash-bar-val">${fmt(n)} <span class="dash-bar-pct">${share}%</span></span>
-      </div>
-    `;
-  }).join('');
 }
 
 function renderDashEbkTable() {
