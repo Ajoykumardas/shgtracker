@@ -724,6 +724,17 @@ body {
   color: #ffffff;
 }
 
+/* Save in flight */
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.lk-member-card.lk-saving .lk-toggle-bar {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
 /* ==========================================================================
    Mobile Responsive Rules
    ========================================================================== */

@@ -744,7 +744,7 @@ function showNextMember() {
   }
 }
 
-function saveCurrentReason(autoAdvance = true) {
+async function saveCurrentReason(autoAdvance = true) {
   const m = state.currentList[state.activeMemberIndex];
   if (!m) return;
 
@@ -775,20 +775,28 @@ function saveCurrentReason(autoAdvance = true) {
     }
   };
 
-  state.savedReasons[m.mc] = payload[m.mc];
-  // No localStorage — server is synced below
+  const formButtons = [el.saveReasonBtn, el.saveOnlyBtn, el.clearReasonBtn];
+  setButtonsBusy(formButtons, true);
+  try {
+    await postJson('/api/reasons', payload);
+  } catch (err) {
+    console.error('Reason save failed:', err);
+    showFormError(SAVE_FAILED_MSG);
+    showToast(SAVE_FAILED_MSG, true);
+    return;
+  } finally {
+    setButtonsBusy(formButtons, false);
+  }
 
-  fetch('/api/reasons', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  }).catch(err => console.warn('Backend sync error:', err));
+  // Only record locally once the server has confirmed
+  state.savedReasons[m.mc] = payload[m.mc];
 
   showFormSuccess('Reason recorded successfully!');
   showToast('✓ Response saved');
 
   setTimeout(() => {
     hideFormAlerts();
+    if (state.currentList[state.activeMemberIndex] !== m) return; // user moved on while saving
     if (autoAdvance && state.activeMemberIndex < state.currentList.length - 1) {
       showNextMember();
     } else {
@@ -797,7 +805,7 @@ function saveCurrentReason(autoAdvance = true) {
   }, 700);
 }
 
-function clearCurrentReason() {
+async function clearCurrentReason() {
   const m = state.currentList[state.activeMemberIndex];
   if (!m) return;
 
@@ -805,22 +813,28 @@ function clearCurrentReason() {
   el.detailReasonSelect.classList.remove('input-error');
   el.detailRemarksInput.classList.remove('input-error');
 
-  delete state.savedReasons[m.mc];
-  // No localStorage — server is synced below
-
   const payload = { [m.mc]: { reason: '', remarks: '', updatedAt: new Date().toISOString() } };
-  fetch('/api/reasons', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  }).catch(err => console.warn('Backend sync error:', err));
+  const formButtons = [el.saveReasonBtn, el.saveOnlyBtn, el.clearReasonBtn];
+  setButtonsBusy(formButtons, true);
+  try {
+    await postJson('/api/reasons', payload);
+  } catch (err) {
+    console.error('Reason clear failed:', err);
+    showFormError('✕ Not cleared — check your connection and try again');
+    showToast(SAVE_FAILED_MSG, true);
+    return;
+  } finally {
+    setButtonsBusy(formButtons, false);
+  }
+
+  delete state.savedReasons[m.mc];
+  showToast('Cleared reason');
+  if (state.currentList[state.activeMemberIndex] !== m) return; // user moved on while saving
 
   el.detailReasonSelect.value = '';
   el.detailRemarksInput.value = '';
   el.remarksGroup.style.display = 'none';
   el.savedTimestampNotice.style.display = 'none';
-
-  showToast('Cleared reason');
 }
 
 /* ==========================================================================
@@ -1184,14 +1198,17 @@ async function saveCutoffDetail(autoAdvance = false) {
     [shg.shgCode]: resp
   };
 
+  const formButtons = [el.saveCutoffDetailOnlyBtn, el.clearCutoffDetailBtn];
+  setButtonsBusy(formButtons, true);
   try {
-    await fetch('/api/cutoff', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
+    await postJson('/api/cutoff', payload);
   } catch (err) {
-    console.warn('Cutoff server sync warning:', err);
+    // Selections stay on screen so the user can simply press Save again
+    console.error('Cutoff save failed:', err);
+    showToast(SAVE_FAILED_MSG, true);
+    return;
+  } finally {
+    setButtonsBusy(formButtons, false);
   }
 
   if (el.cutoffFormSuccessAlert) el.cutoffFormSuccessAlert.style.display = 'flex';
@@ -1207,20 +1224,23 @@ async function saveCutoffDetail(autoAdvance = false) {
   }, 700);
 }
 
-function clearCutoffDetail() {
+async function clearCutoffDetail() {
   const shg = state.cutoffCurrentList[state.activeCutoffIndex];
   if (!shg) return;
 
+  const formButtons = [el.saveCutoffDetailOnlyBtn, el.clearCutoffDetailBtn];
+  setButtonsBusy(formButtons, true);
+  try {
+    await postJson('/api/cutoff', { [shg.shgCode]: {} });
+  } catch (err) {
+    console.error('Cutoff clear failed:', err);
+    showToast('✕ Not cleared — check your connection and try again', true);
+    return;
+  } finally {
+    setButtonsBusy(formButtons, false);
+  }
+
   delete state.savedCutoff[shg.shgCode];
-  // No localStorage — remove from memory and sync to server below
-
-  const payload = { [shg.shgCode]: {} };
-  fetch('/api/cutoff', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  }).catch(err => console.warn('Cutoff server sync warning:', err));
-
   renderCutoffDetail();
   showToast('Cleared cutoff dates for SHG');
 }
@@ -1354,12 +1374,34 @@ function exportAllBlockCsv() {
   showToast(`✓ Exported ${activeMembers.length.toLocaleString()} members`);
 }
 
-function showToast(msg) {
+let toastTimer = null;
+
+function showToast(msg, isError = false) {
   el.toastNotification.textContent = msg;
+  el.toastNotification.classList.toggle('toast-error', isError);
   el.toastNotification.classList.add('show');
-  setTimeout(() => {
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
     el.toastNotification.classList.remove('show');
-  }, 2500);
+  }, isError ? 5000 : 2500);
+}
+
+const SAVE_FAILED_MSG = '✕ Not saved — check your connection and try again';
+
+// POST JSON; throws unless the server confirms the save
+async function postJson(url, payload) {
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) throw new Error(`Server returned ${res.status}`);
+  return res.json();
+}
+
+// Disable buttons while a save is in flight so it can't be submitted twice
+function setButtonsBusy(buttons, busy) {
+  buttons.forEach(btn => { if (btn) btn.disabled = busy; });
 }
 
 function csvEscape(val) {
@@ -1662,60 +1704,52 @@ function updateLakhpatiStats(list) {
   if (el.statLakhpatiRemaining) el.statLakhpatiRemaining.textContent = remaining.toLocaleString();
 }
 
+function applyLakhpatiCardState(card, isMarked) {
+  if (!card) return;
+  const statusBadge = card.querySelector('.lk-status-badge');
+  const badgeText = card.querySelector('.lk-badge-text');
+  const toggleBar = card.querySelector('.lk-toggle-bar');
+  const toggleSubtitle = card.querySelector('.lk-toggle-subtitle');
+  const switchStateText = card.querySelector('.lk-switch-state-text');
+
+  card.classList.toggle('lk-card-marked', isMarked);
+  if (statusBadge) statusBadge.className = `lk-status-badge ${isMarked ? 'marked' : 'active'}`;
+  if (badgeText) badgeText.textContent = isMarked ? 'Need to Inactive' : 'Active';
+  if (toggleBar) toggleBar.classList.toggle('checked', isMarked);
+  if (toggleSubtitle) toggleSubtitle.textContent = isMarked ? 'Marked for inactivation' : 'Tap switch to mark inactive';
+  if (switchStateText) switchStateText.textContent = isMarked ? 'YES' : 'NO';
+}
+
+const lakhpatiSaving = new Set(); // pldCodes with a save in flight
+
 async function handleLakhpatiToggle(pldCode, triggerEl) {
-  const current = state.savedLakhpatiInactive[pldCode];
-  const newVal = !(current && current.needInactive);
+  if (lakhpatiSaving.has(pldCode)) return; // ignore double taps until the server answers
 
-  state.savedLakhpatiInactive[pldCode] = {
-    needInactive: newVal,
-    updatedAt: new Date().toISOString()
-  };
+  const previous = state.savedLakhpatiInactive[pldCode];
+  const newVal = !(previous && previous.needInactive);
+  const entry = { needInactive: newVal, updatedAt: new Date().toISOString() };
 
-  // Instant UI feedback on the card
-  if (triggerEl) {
-    const card = triggerEl.closest('.lk-member-card');
-    if (card) {
-      const statusBadge = card.querySelector('.lk-status-badge');
-      const badgeText = card.querySelector('.lk-badge-text');
-      const toggleBar = card.querySelector('.lk-toggle-bar');
-      const toggleSubtitle = card.querySelector('.lk-toggle-subtitle');
-      const switchStateText = card.querySelector('.lk-switch-state-text');
-
-      if (newVal) {
-        card.classList.add('lk-card-marked');
-        if (statusBadge) statusBadge.className = 'lk-status-badge marked';
-        if (badgeText) badgeText.textContent = 'Need to Inactive';
-        if (toggleBar) toggleBar.classList.add('checked');
-        if (toggleSubtitle) toggleSubtitle.textContent = 'Marked for inactivation';
-        if (switchStateText) switchStateText.textContent = 'YES';
-      } else {
-        card.classList.remove('lk-card-marked');
-        if (statusBadge) statusBadge.className = 'lk-status-badge active';
-        if (badgeText) badgeText.textContent = 'Active';
-        if (toggleBar) toggleBar.classList.remove('checked');
-        if (toggleSubtitle) toggleSubtitle.textContent = 'Tap switch to mark inactive';
-        if (switchStateText) switchStateText.textContent = 'NO';
-      }
-    }
-  }
-
-  // Update stats
+  // Optimistic UI: flip immediately, roll back if the server doesn't confirm
+  const card = triggerEl ? triggerEl.closest('.lk-member-card') : null;
+  state.savedLakhpatiInactive[pldCode] = entry;
+  applyLakhpatiCardState(card, newVal);
   updateLakhpatiStats(state.lakhpatiMembers);
 
-  // POST to server
+  lakhpatiSaving.add(pldCode);
+  if (card) card.classList.add('lk-saving');
   try {
-    const payload = { [pldCode]: state.savedLakhpatiInactive[pldCode] };
-    const res = await fetch('/api/lakhpati', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    if (res.ok) {
-      showToast(newVal ? '⚠ Marked as Need to Inactive' : '✓ Restored to Active');
-    }
+    await postJson('/api/lakhpati', { [pldCode]: entry });
+    showToast(newVal ? '⚠ Marked as Need to Inactive' : '✓ Restored to Active');
   } catch (err) {
     console.error('Error saving lakhpati toggle:', err);
-    showToast('⚠ Save failed — please retry');
+    if (previous) state.savedLakhpatiInactive[pldCode] = previous;
+    else delete state.savedLakhpatiInactive[pldCode];
+    applyLakhpatiCardState(card, !newVal);
+    updateLakhpatiStats(state.lakhpatiMembers);
+    showToast(SAVE_FAILED_MSG, true);
+  } finally {
+    lakhpatiSaving.delete(pldCode);
+    if (card) card.classList.remove('lk-saving');
   }
 }
 
