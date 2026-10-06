@@ -5,9 +5,21 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "node server.js",
+    "import-backup": "node scripts/import-backup.js"
   },
-  "keywords": ["nrlm", "shg", "ekyc", "verification"],
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "nrlm",
+    "shg",
+    "ekyc",
+    "verification"
+  ],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "pg": "^8.23.1"
+  }
 }

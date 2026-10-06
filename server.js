@@ -2,19 +2,12 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const zlib = require('zlib');
+const db = require('./db');
 
 const PORT = process.env.PORT || 3000;
 const PUBLIC_DIR = path.join(__dirname, 'public');
 const DATA_DIR = path.join(__dirname, 'data');
-const REASONS_FILE = path.join(DATA_DIR, 'member_reasons.json');
-const REASONS_SEED  = path.join(DATA_DIR, 'seed_reasons.json');   // tracked in git
-const CUTOFF_FILE   = path.join(DATA_DIR, 'shg_cutoff_responses.json');
-const CUTOFF_SEED   = path.join(DATA_DIR, 'seed_cutoff.json');    // tracked in git
-const LAKHPATI_FILE = path.join(DATA_DIR, 'lakhpati_inactive.json');
-const LAKHPATI_SEED = path.join(DATA_DIR, 'seed_lakhpati_inactive.json'); // tracked in git
-
-// Ensure data dir exists on fresh Render deploy
-if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+const MAX_BODY_BYTES = 20 * 1024 * 1024; // restore payloads can be large
 
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -27,86 +20,77 @@ const MIME_TYPES = {
   '.ico': 'image/x-icon'
 };
 
-// In-memory cache
-let membersData = null;
-let hierarchyData = null;
-let savedReasons = {};
-let savedCutoff = {};
-let savedLakhpati = {};
+// Saved responses live in Supabase Postgres. Each store exposes the same
+// GET-all / POST-merge contract the frontend has always used.
+const STORES = {
+  '/api/reasons':  { get: db.getReasons,  save: db.saveReasons },
+  '/api/cutoff':   { get: db.getCutoff,   save: db.saveCutoff },
+  '/api/lakhpati': { get: db.getLakhpati, save: db.saveLakhpati }
+};
 
-function loadData() {
-  const membersFile = path.join(PUBLIC_DIR, 'members.json');
-  const hierarchyFile = path.join(PUBLIC_DIR, 'hierarchy_summary.json');
-  
-  if (fs.existsSync(membersFile)) {
-    try {
-      const raw = fs.readFileSync(membersFile, 'utf-8');
-      membersData = JSON.parse(raw);
-    } catch (e) {
-      console.error('Error loading members.json:', e);
-    }
-  }
-
-  if (fs.existsSync(hierarchyFile)) {
-    try {
-      const raw = fs.readFileSync(hierarchyFile, 'utf-8');
-      hierarchyData = JSON.parse(raw);
-    } catch (e) {
-      console.error('Error loading hierarchy_summary.json:', e);
-    }
-  }
-
-  // Load member reasons: runtime file first, fall back to git-tracked seed
-  const reasonsSrc = fs.existsSync(REASONS_FILE) ? REASONS_FILE
-                   : fs.existsSync(REASONS_SEED)  ? REASONS_SEED
-                   : null;
-  if (reasonsSrc) {
-    try {
-      savedReasons = JSON.parse(fs.readFileSync(reasonsSrc, 'utf-8'));
-      console.log(`Loaded ${Object.keys(savedReasons).length} member reasons from ${path.basename(reasonsSrc)}`);
-      // If we loaded from seed, write runtime file so future saves append correctly
-      if (reasonsSrc === REASONS_SEED && !fs.existsSync(REASONS_FILE)) {
-        fs.writeFileSync(REASONS_FILE, JSON.stringify(savedReasons));
-      }
-    } catch (e) {
-      savedReasons = {};
-    }
-  }
-
-  // Load cutoff responses: runtime file first, fall back to git-tracked seed
-  const cutoffSrc = fs.existsSync(CUTOFF_FILE) ? CUTOFF_FILE
-                  : fs.existsSync(CUTOFF_SEED)  ? CUTOFF_SEED
-                  : null;
-  if (cutoffSrc) {
-    try {
-      savedCutoff = JSON.parse(fs.readFileSync(cutoffSrc, 'utf-8'));
-      console.log(`Loaded ${Object.keys(savedCutoff).length} cutoff entries from ${path.basename(cutoffSrc)}`);
-      if (cutoffSrc === CUTOFF_SEED && !fs.existsSync(CUTOFF_FILE)) {
-        fs.writeFileSync(CUTOFF_FILE, JSON.stringify(savedCutoff));
-      }
-    } catch (e) {
-      savedCutoff = {};
-    }
-  }
-
-  // Load lakhpati inactive markings: runtime file first, fall back to git-tracked seed
-  const lakhpatiSrc = fs.existsSync(LAKHPATI_FILE) ? LAKHPATI_FILE
-                    : fs.existsSync(LAKHPATI_SEED)  ? LAKHPATI_SEED
-                    : null;
-  if (lakhpatiSrc) {
-    try {
-      savedLakhpati = JSON.parse(fs.readFileSync(lakhpatiSrc, 'utf-8'));
-      console.log(`Loaded ${Object.keys(savedLakhpati).length} lakhpati inactive entries from ${path.basename(lakhpatiSrc)}`);
-      if (lakhpatiSrc === LAKHPATI_SEED && !fs.existsSync(LAKHPATI_FILE)) {
-        fs.writeFileSync(LAKHPATI_FILE, JSON.stringify(savedLakhpati));
-      }
-    } catch (e) {
-      savedLakhpati = {};
-    }
-  }
+function sendJson(res, status, obj) {
+  res.writeHead(status, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify(obj));
 }
 
-loadData();
+function readJsonBody(req) {
+  return new Promise((resolve, reject) => {
+    let body = '';
+    let size = 0;
+    req.on('data', chunk => {
+      size += chunk.length;
+      if (size > MAX_BODY_BYTES) {
+        reject(Object.assign(new Error('Payload too large'), { status: 413 }));
+        req.destroy();
+        return;
+      }
+      body += chunk;
+    });
+    req.on('end', () => {
+      try {
+        const payload = JSON.parse(body);
+        if (!payload || typeof payload !== 'object' || Array.isArray(payload)) throw new Error();
+        resolve(payload);
+      } catch (e) {
+        reject(Object.assign(new Error('Invalid JSON payload'), { status: 400 }));
+      }
+    });
+    req.on('error', reject);
+  });
+}
+
+async function handleApi(req, res, pathname) {
+  const store = STORES[pathname];
+  if (store) {
+    if (req.method === 'GET') {
+      return sendJson(res, 200, await store.get());
+    }
+    if (req.method === 'POST') {
+      await store.save(await readJsonBody(req));
+      const counts = await db.counts();
+      return sendJson(res, 200, { success: true, count: counts[pathname.replace('/api/', '')] });
+    }
+  }
+
+  // Backup & Restore — full export / merge-import of all saved responses
+  if (pathname === '/api/backup' && req.method === 'GET') {
+    const [reasons, cutoff, lakhpati, counts] = await Promise.all([
+      db.getReasons(), db.getCutoff(), db.getLakhpati(), db.counts()
+    ]);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ reasons, cutoff, lakhpati, counts, exportedAt: new Date().toISOString() }, null, 2));
+  }
+
+  if (pathname === '/api/restore' && req.method === 'POST') {
+    const payload = await readJsonBody(req);
+    if (payload.reasons)  await db.saveReasons(payload.reasons);
+    if (payload.cutoff)   await db.saveCutoff(payload.cutoff);
+    if (payload.lakhpati) await db.saveLakhpati(payload.lakhpati);
+    return sendJson(res, 200, { success: true, counts: await db.counts() });
+  }
+
+  return sendJson(res, 404, { error: 'Not found' });
+}
 
 const server = http.createServer((req, res) => {
   const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
@@ -133,140 +117,12 @@ const server = http.createServer((req, res) => {
   }
 
   // API Endpoints
-  if (pathname === '/api/reasons') {
-    if (req.method === 'GET') {
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      return res.end(JSON.stringify(savedReasons));
-    }
-
-    if (req.method === 'POST') {
-      let body = '';
-      req.on('data', chunk => body += chunk);
-      req.on('end', () => {
-        try {
-          const payload = JSON.parse(body);
-          savedReasons = { ...savedReasons, ...payload };
-          fs.writeFileSync(REASONS_FILE, JSON.stringify(savedReasons, null, 2), 'utf-8');
-          try { fs.writeFileSync(REASONS_SEED, JSON.stringify(savedReasons, null, 2), 'utf-8'); } catch (e) {}
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          return res.end(JSON.stringify({ success: true, count: Object.keys(savedReasons).length }));
-        } catch (err) {
-          res.writeHead(400, { 'Content-Type': 'application/json' });
-          return res.end(JSON.stringify({ error: 'Invalid JSON payload' }));
-        }
-      });
-      return;
-    }
-  }
-
-  if (pathname === '/api/cutoff') {
-    if (req.method === 'GET') {
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      return res.end(JSON.stringify(savedCutoff));
-    }
-
-    if (req.method === 'POST') {
-      let body = '';
-      req.on('data', chunk => body += chunk);
-      req.on('end', () => {
-        try {
-          const payload = JSON.parse(body);
-          savedCutoff = { ...savedCutoff, ...payload };
-          fs.writeFileSync(CUTOFF_FILE, JSON.stringify(savedCutoff, null, 2), 'utf-8');
-          try { fs.writeFileSync(CUTOFF_SEED, JSON.stringify(savedCutoff, null, 2), 'utf-8'); } catch (e) {}
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          return res.end(JSON.stringify({ success: true, count: Object.keys(savedCutoff).length }));
-        } catch (err) {
-          res.writeHead(400, { 'Content-Type': 'application/json' });
-          return res.end(JSON.stringify({ error: 'Invalid JSON payload' }));
-        }
-      });
-      return;
-    }
-  }
-
-  if (pathname === '/api/lakhpati') {
-    if (req.method === 'GET') {
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      return res.end(JSON.stringify(savedLakhpati));
-    }
-
-    if (req.method === 'POST') {
-      let body = '';
-      req.on('data', chunk => body += chunk);
-      req.on('end', () => {
-        try {
-          const payload = JSON.parse(body);
-          savedLakhpati = { ...savedLakhpati, ...payload };
-          fs.writeFileSync(LAKHPATI_FILE, JSON.stringify(savedLakhpati, null, 2), 'utf-8');
-          try { fs.writeFileSync(LAKHPATI_SEED, JSON.stringify(savedLakhpati, null, 2), 'utf-8'); } catch (e) {}
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          return res.end(JSON.stringify({ success: true, count: Object.keys(savedLakhpati).length }));
-        } catch (err) {
-          res.writeHead(400, { 'Content-Type': 'application/json' });
-          return res.end(JSON.stringify({ error: 'Invalid JSON payload' }));
-        }
-      });
-      return;
-    }
-  }
-
-  // Backup & Restore API for Render persistence & local sync
-  if (pathname === '/api/backup') {
-    if (req.method === 'GET') {
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      return res.end(JSON.stringify({
-        reasons: savedReasons,
-        cutoff: savedCutoff,
-        lakhpati: savedLakhpati,
-        counts: {
-          reasons: Object.keys(savedReasons).length,
-          cutoff: Object.keys(savedCutoff).length,
-          lakhpati: Object.keys(savedLakhpati).length
-        },
-        exportedAt: new Date().toISOString()
-      }, null, 2));
-    }
-  }
-
-  if (pathname === '/api/restore') {
-    if (req.method === 'POST') {
-      let body = '';
-      req.on('data', chunk => body += chunk);
-      req.on('end', () => {
-        try {
-          const payload = JSON.parse(body);
-          if (payload.reasons) {
-            savedReasons = { ...savedReasons, ...payload.reasons };
-            fs.writeFileSync(REASONS_FILE, JSON.stringify(savedReasons, null, 2), 'utf-8');
-            try { fs.writeFileSync(REASONS_SEED, JSON.stringify(savedReasons, null, 2), 'utf-8'); } catch (e) {}
-          }
-          if (payload.cutoff) {
-            savedCutoff = { ...savedCutoff, ...payload.cutoff };
-            fs.writeFileSync(CUTOFF_FILE, JSON.stringify(savedCutoff, null, 2), 'utf-8');
-            try { fs.writeFileSync(CUTOFF_SEED, JSON.stringify(savedCutoff, null, 2), 'utf-8'); } catch (e) {}
-          }
-          if (payload.lakhpati) {
-            savedLakhpati = { ...savedLakhpati, ...payload.lakhpati };
-            fs.writeFileSync(LAKHPATI_FILE, JSON.stringify(savedLakhpati, null, 2), 'utf-8');
-            try { fs.writeFileSync(LAKHPATI_SEED, JSON.stringify(savedLakhpati, null, 2), 'utf-8'); } catch (e) {}
-          }
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          return res.end(JSON.stringify({
-            success: true,
-            counts: {
-              reasons: Object.keys(savedReasons).length,
-              cutoff: Object.keys(savedCutoff).length,
-              lakhpati: Object.keys(savedLakhpati).length
-            }
-          }));
-        } catch (err) {
-          res.writeHead(400, { 'Content-Type': 'application/json' });
-          return res.end(JSON.stringify({ error: 'Invalid JSON payload' }));
-        }
-      });
-      return;
-    }
+  if (pathname.startsWith('/api/')) {
+    handleApi(req, res, pathname).catch(err => {
+      if (!err.status) console.error(`${req.method} ${pathname} failed:`, err);
+      if (!res.headersSent) sendJson(res, err.status || 500, { error: err.status ? err.message : 'Database error' });
+    });
+    return;
   }
 
   // Static File Serving
@@ -301,21 +157,31 @@ const server = http.createServer((req, res) => {
   }
 });
 
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`SHG Verification Portal running at http://localhost:${PORT}`);
+db.init()
+  .then(() => db.counts())
+  .then(counts => {
+    console.log(`Connected to Postgres — reasons: ${counts.reasons}, cutoff: ${counts.cutoff}, lakhpati: ${counts.lakhpati}`);
 
-  // Built-in Self-Pinger: If RENDER_EXTERNAL_URL is set in Render environment, automatically ping itself every 10 minutes
-  const appUrl = process.env.RENDER_EXTERNAL_URL || process.env.APP_URL;
-  if (appUrl) {
-    const pingUrl = `${appUrl.replace(/\/$/, '')}/health`;
-    console.log(`Starting self-ping service for: ${pingUrl}`);
-    setInterval(() => {
-      const httpModule = pingUrl.startsWith('https') ? require('https') : require('http');
-      httpModule.get(pingUrl, (res) => {
-        console.log(`[Self-Ping] Pinged ${pingUrl} - Status: ${res.statusCode} at ${new Date().toLocaleTimeString()}`);
-      }).on('error', (err) => {
-        console.warn(`[Self-Ping] Ping error:`, err.message);
-      });
-    }, 10 * 60 * 1000); // Every 10 minutes
-  }
-});
+    server.listen(PORT, '0.0.0.0', () => {
+      console.log(`SHG Verification Portal running at http://localhost:${PORT}`);
+
+      // Built-in Self-Pinger: If RENDER_EXTERNAL_URL is set in Render environment, automatically ping itself every 10 minutes
+      const appUrl = process.env.RENDER_EXTERNAL_URL || process.env.APP_URL;
+      if (appUrl) {
+        const pingUrl = `${appUrl.replace(/\/$/, '')}/health`;
+        console.log(`Starting self-ping service for: ${pingUrl}`);
+        setInterval(() => {
+          const httpModule = pingUrl.startsWith('https') ? require('https') : require('http');
+          httpModule.get(pingUrl, (res) => {
+            console.log(`[Self-Ping] Pinged ${pingUrl} - Status: ${res.statusCode} at ${new Date().toLocaleTimeString()}`);
+          }).on('error', (err) => {
+            console.warn(`[Self-Ping] Ping error:`, err.message);
+          });
+        }, 10 * 60 * 1000); // Every 10 minutes
+      }
+    });
+  })
+  .catch(err => {
+    console.error('Failed to initialise database:', err.message);
+    process.exit(1);
+  });
