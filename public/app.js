@@ -140,6 +140,7 @@ const el = {
   verifiedMemberNotice: document.getElementById('verifiedMemberNotice'),
   noCodeMemberNotice: document.getElementById('noCodeMemberNotice'),
   noCodeApprovalText: document.getElementById('noCodeApprovalText'),
+  noCodeIdentityText: document.getElementById('noCodeIdentityText'),
   reasonFormCard: document.getElementById('reasonFormCard'),
   formSuccessAlert: document.getElementById('formSuccessAlert'),
   formSuccessAlertText: document.getElementById('formSuccessAlertText'),
@@ -573,13 +574,20 @@ function updateSelectorFooter() {
   }
 }
 
-// Reasons are keyed by member code; members without a generated code can't have one
 function hasMemberCode(m) {
   return /^\d{12}$/.test(m.mc || '');
 }
 
+// Reasons are keyed by member code; members without one use "rk", a key built from
+// their details (village, SHG, name, DOB, relation, joining date) by build_members.py
+function getReasonKey(m) {
+  if (hasMemberCode(m)) return m.mc;
+  return (m.rk || '').startsWith('NC|') ? m.rk : '';
+}
+
 function getSavedReason(m) {
-  return hasMemberCode(m) ? state.savedReasons[m.mc] : undefined;
+  const key = getReasonKey(m);
+  return key ? state.savedReasons[key] : undefined;
 }
 
 function renderMembersTable() {
@@ -659,12 +667,12 @@ function renderMembersTable() {
     const isFullyVerified = (isEkycDone && isPhoneDone);
     const hasCode = hasMemberCode(m);
     const saved = getSavedReason(m);
-    const canRecord = hasCode && !isFullyVerified;
+    const canRecord = !!getReasonKey(m) && !isFullyVerified;
     let reasonBadgeHtml = '';
 
     if (isFullyVerified) {
       reasonBadgeHtml = '<span class="status-badge badge-success">Fully Verified</span>';
-    } else if (!hasCode) {
+    } else if (!getReasonKey(m)) {
       reasonBadgeHtml = '<span class="status-badge badge-neutral">No Member Code</span>';
     } else if (saved && saved.reason) {
       const displayReason = escapeHtml(describeReason(saved));
@@ -762,8 +770,12 @@ function renderMemberDetail() {
   el.verifiedMemberNotice.style.display = isFullyVerified ? 'block' : 'none';
   el.noCodeMemberNotice.style.display = (!isFullyVerified && !hasCode) ? 'block' : 'none';
   el.noCodeApprovalText.textContent = m.appst || '-';
+  const identity = [hasValue(m.dob) && `DOB: ${m.dob}`, hasValue(m.rel) && `Relation: ${m.rel}`].filter(Boolean).join(' · ');
+  el.noCodeIdentityText.textContent = getReasonKey(m)
+    ? `The reason is saved against the member's details${identity ? ` (${identity})` : ''}.`
+    : 'A reason can be recorded once the member code is generated.';
 
-  if (isFullyVerified || !hasCode) {
+  if (isFullyVerified || !getReasonKey(m)) {
     el.reasonFormCard.style.display = 'none';
   } else {
     el.reasonFormCard.style.display = 'block';
@@ -810,7 +822,8 @@ function showNextMember() {
 
 async function saveCurrentReason(autoAdvance = true) {
   const m = state.currentList[state.activeMemberIndex];
-  if (!m || !hasMemberCode(m)) return;
+  const key = m && getReasonKey(m);
+  if (!key) return;
 
   hideFormAlerts();
   el.detailReasonSelect.classList.remove('input-error');
@@ -824,7 +837,7 @@ async function saveCurrentReason(autoAdvance = true) {
   }
 
   const payload = {
-    [m.mc]: {
+    [key]: {
       reason,
       remarks: '',
       updatedAt: new Date().toISOString()
@@ -845,7 +858,7 @@ async function saveCurrentReason(autoAdvance = true) {
   }
 
   // Only record locally once the server has confirmed
-  state.savedReasons[m.mc] = payload[m.mc];
+  state.savedReasons[key] = payload[key];
 
   showFormSuccess('Reason recorded successfully!');
   showToast('✓ Response saved');
@@ -863,12 +876,13 @@ async function saveCurrentReason(autoAdvance = true) {
 
 async function clearCurrentReason() {
   const m = state.currentList[state.activeMemberIndex];
-  if (!m || !hasMemberCode(m)) return;
+  const key = m && getReasonKey(m);
+  if (!key) return;
 
   hideFormAlerts();
   el.detailReasonSelect.classList.remove('input-error');
 
-  const payload = { [m.mc]: { reason: '', remarks: '', updatedAt: new Date().toISOString() } };
+  const payload = { [key]: { reason: '', remarks: '', updatedAt: new Date().toISOString() } };
   const formButtons = [el.saveReasonBtn, el.saveOnlyBtn, el.clearReasonBtn];
   setButtonsBusy(formButtons, true);
   try {
@@ -882,7 +896,7 @@ async function clearCurrentReason() {
     setButtonsBusy(formButtons, false);
   }
 
-  delete state.savedReasons[m.mc];
+  delete state.savedReasons[key];
   showToast('Cleared reason');
   if (state.currentList[state.activeMemberIndex] !== m) return; // user moved on while saving
 
@@ -910,9 +924,9 @@ function isFullyVerifiedMember(m) {
   return m.ekyc.toLowerCase() === 'yes' && m.pvf;
 }
 
-// A reason is expected for every member with a code who isn't fully verified
+// A reason is expected for every member who can be tagged and isn't fully verified
 function needsReason(m) {
-  return hasMemberCode(m) && !isFullyVerifiedMember(m);
+  return !!getReasonKey(m) && !isFullyVerifiedMember(m);
 }
 
 function isReasonTagged(m) {
@@ -971,7 +985,7 @@ function renderDashKpis(list, need, tagged) {
     { title: 'REASON TAGGED', value: fmt(tagged.length), tag: 'DONE', tagClass: 'tag-done', numClass: 'stat-green' },
     { title: 'PENDING', value: fmt(pending), tag: 'TO BE TAGGED', tagClass: 'tag-warning', numClass: 'stat-orange' },
     { title: 'PROGRESS', value: `${percentOf(tagged.length, need.length)}%`, tag: 'TAGGED / NEED', tagClass: 'tag-neutral' },
-    { title: 'NO MEMBER CODE', value: fmt(noCode), tag: 'CANNOT BE TAGGED', tagClass: 'tag-neutral' }
+    { title: 'NO MEMBER CODE', value: fmt(noCode), tag: 'TAGGED BY DETAILS', tagClass: 'tag-neutral' }
   ];
   el.dashKpis.innerHTML = tiles.map(t => `
     <div class="stat-box">
